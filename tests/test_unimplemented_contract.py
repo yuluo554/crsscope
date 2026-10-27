@@ -16,14 +16,12 @@ from crsscope import cli
 
 #: {子命令: 落位里程碑}。实现完成后**必须**从本表删除对应项。
 UNIMPLEMENTED = {
-    "xdiff": "M4",
     "geojson": "M5",
     "tiles": "M5",
     "report": "M6",
 }
 
 ARGS = {
-    "xdiff": ["x.geojson", "--target", "wgs84"],
     "geojson": ["x.geojson"],
     "tiles": ["x.geojson"],
     "report": ["report.json"],

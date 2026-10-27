@@ -10,9 +10,9 @@ pip install -e ".[dev]"
 crsscope --help
 ```
 
-当前版本 `0.1.0`。**部分判定已落位**：`crsscope decl`（声明-内容一致性）与
-`crsscope detect`（偏移检测与残差）可用；其余三个子命令的参数面与契约已定，
-调用时以退出码 3（环境不满足）报 `not implemented`。
+当前版本 `0.1.0`。**部分判定已落位**：`crsscope decl`（声明-内容一致性）、
+`crsscope detect`（偏移检测与残差）与 `crsscope xdiff`（跨实现差分）可用；
+其余两个子命令的参数面与契约已定，调用时以退出码 3（环境不满足）报 `not implemented`。
 进度见 [`plan/05-里程碑与发布.md`](plan/05-里程碑与发布.md)。
 
 ---
@@ -73,9 +73,11 @@ crsscope report report.json --fail-on conflict,axis
 py -3.12 data/fixtures/declared_lie/gen.py --out data/fixtures/declared_lie
 py -3.12 data/fixtures/swapped_axis/gen.py --out data/fixtures/swapped_axis
 py -3.12 data/fixtures/water_track/gen.py --out data/fixtures/water_track
+py -3.12 data/fixtures/boundary_divergence/gen.py --out data/fixtures/boundary_divergence
 crsscope decl data/fixtures/declared_lie/out/declared_lie.geojson --declared-crs 4326 --allow-undecidable --fail-on magnitude
 crsscope decl data/fixtures/swapped_axis/out/swapped_axis.geojson --declared-crs 4326 --fail-on axis
 crsscope detect data/fixtures/water_track/out/water_track.gpx --mask data/fixtures/water_track/out/water_track_mask.json
+crsscope xdiff data/fixtures/boundary_divergence/out/boundary_divergence.geojson --target gcj02
 ```
 
 - **`declared_lie`**：`crs` 成员声明 4326、坐标却是 3857 米域 → `magnitude` 项 `conflict`，
@@ -87,9 +89,14 @@ crsscope detect data/fixtures/water_track/out/water_track.gpx --mask data/fixtur
   （落水率 1.0），按 **GCJ02** 假设反解回落水率 **0.0** → `winner: GCJ02`、`confidence: high`；
   同时固定输出三段不可消解残差。**必须用它自带的 0.0008° 细网格**——默认 1° 网格（≈111 km）
   跨不过 GCJ-02 的 250–600 m 位移，只能落 `undecidable`（`plan/05` §二之三）。
+- **`boundary_divergence`**：同一坐标喂给两库（`coordTransform_py` **开区间** / `gcoord`
+  **闭区间** 的 `out_of_china`）。`(73.2°E, 39.5°N)` 经度 `73.2 < 73.66` 与 `(112.0°E, 2.0°N)`
+  纬度 `2.0 < 3.86` → 两库给出**相反**结论（`boundary_table.agree: false`，进 `jumps`）；
+  `(112.0°E, 5.0°N)` / `(112.0°E, 60.0°N)` 两库一致。`pairwise` 给两库的两两差分
+  （`median_m` / `max_m` / `p95_m`，`max_m` 附该点坐标）；迭代不收敛的点如实报 `not_converged`。
 
-> `decl` / `detect` 之外的三个子命令当前会以 **exit 3 + `not implemented`** 返回：
-> 参数面已定、判定逻辑待 M4–M5。
+> `decl` / `detect` / `xdiff` 之外的两个子命令当前会以 **exit 3 + `not implemented`** 返回：
+> 参数面已定、判定逻辑待 M5。
 > 这是有意设计——未实现的命令**不许**以 0 退出，否则 CI 会把"没跑"读成"跑过且没问题"。
 
 
