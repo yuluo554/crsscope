@@ -64,8 +64,9 @@ tag 名 `v0.1.1`；注释式 tag（annotated）。以下事实在打 tag 的**�
 | 真下载复核 | `gh release download v0.1.1` → `sha256sum -c SHA256SUMS` 两条 OK → 与原产物 `cmp` 三项逐字节一致 |
 | 干净 venv 装下载件 | 全新 venv 装**下载来的** wheel → `0.1.1`；`geojson` / `tiles` / `report` 各跑一条真命令，退出码与源码态一致 |
 | 在线发布门 | `py -3.12 tools/check-release.py --online --tag v0.1.1` → 8 条判据全 PASS（共有文件 76 个、逐字节不一致 0 个） |
-| CI run（main push `556cf99`） | 见 `gh run list`；与 §2.2 的首推 run 同工作流 |
-| CI run（tag push `v0.1.1`） | 见 `gh run list`（tag 触发同一 workflow） |
+| CI run（main push `556cf99`） | `40540733469` — success（windows/ubuntu × 3.11/3.12 四组全绿） |
+| CI run（tag push `v0.1.1`） | `40540763666` — success（四组矩阵；日志含布局门 11 PASS、发布门 `REL.FILES` PASS / `REL.DIST` 0 份产物显式跳过、`smoke ok`、`contract ok (rc=2)`） |
+| CI run（留档提交 `7930e2f`） | `40541180524` — success |
 
 > **构建与 tag 的时序教训（第三版才做对）**：`v0.1.1` 第一次上传的附件是在**最后一次改码之前**
 > 构建的——`--online` 档随即报出 3 个共有文件逐字节不一致（`tools/check-release.py`、
