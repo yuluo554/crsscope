@@ -36,8 +36,16 @@ def test_gate_files_exist() -> None:
 
 
 def test_gate_does_not_shell_out() -> None:
-    """门本身必须纯文件判据：出现 subprocess/socket 就是"读环境"的信号。"""
+    """**布局门**必须纯文件判据：出现 subprocess/socket 就是"读环境"的信号。
+
+    扫描面钉在布局门本身上：`mutate-layout-gate.py` 要起子进程跑门、`check-release.py`
+    的 `--pre-tag` / `--online` 两档按设计要读 tag / Release 事实（`plan/05` §五 已登记），
+    二者各自豁免；发布门"离线档不得起子进程"由下面那条单独守。
+    """
+    exempt = {"mutate-layout-gate.py", "check-release.py"}
     for path in sorted(TOOLS_DIR.glob("*.py")):
+        if path.name in exempt:
+            continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         imported = set()
         for node in ast.walk(tree):
@@ -45,10 +53,37 @@ def test_gate_does_not_shell_out() -> None:
                 imported.update(a.name.split(".")[0] for a in node.names)
             elif isinstance(node, ast.ImportFrom) and node.module:
                 imported.add(node.module.split(".")[0])
-        # 变异脚本要起子进程跑门，是**唯一**允许的例外
-        if path.name == "mutate-layout-gate.py":
-            continue
         assert "subprocess" not in imported, f"{path.name} 不得起子进程"
+
+
+def test_release_gate_offline_tier_never_shells_out() -> None:
+    """发布门**离线档**（进 CI 的那一档）不许起子进程——否则"零网络 / 只读仓库"只是口号。
+
+    判据落在函数体上：`static_checks` / `dist_checks` 及它们调用的纯工具函数里
+    不得出现 `subprocess`；`--pre-tag` 的 `git tag --list` 与 `--online` 的
+    `git archive` / `gh release` 都在别的函数里（`plan/05` §五 已登记其证据面）。
+    """
+    path = TOOLS_DIR / "check-release.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    offline_names = {
+        "static_checks",
+        "dist_checks",
+        "read_version",
+        "parse_sums",
+        "verify_sums",
+        "sha256_file",
+        "collect_relative_files",
+        "files_byte_equal",
+        "safe_basename",
+    }
+    checked: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name in offline_names:
+            checked.append(node.name)
+            assert "subprocess" not in ast.dump(node), (
+                f"发布门离线档函数 {node.name} 起了子进程——离线档必须只读仓库内文件"
+            )
+    assert checked, "判据扫不到任何离线档函数（判据空跑）"
 
 
 def _non_docstring_literals(source: str) -> list[str]:

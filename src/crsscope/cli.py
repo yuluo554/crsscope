@@ -113,12 +113,9 @@ def _run_tiles(args: argparse.Namespace) -> report.ModuleResult:
 
 
 def _run_report(args: argparse.Namespace) -> report.ModuleResult:
-    from .errors import UnimplementedFeature
-
-    raise UnimplementedFeature(
-        "report 汇总尚未实现（随 M6 发布门一起落位）",
-        detail="语义见 plan/03 §六：多份 report.json 汇总 + --fail-on 门禁",
-    )
+    # 聚合与失败路径（缺文件 3 / 坏 JSON 4）都在 report.run 里；
+    # 退出码折算沿用 _emit 的 errors.outcome_code（undecidable → 5，--fail-on 收窄）。
+    return report.run(args.files)
 
 
 _HANDLERS: dict[str, Callable[[argparse.Namespace], report.ModuleResult]] = {

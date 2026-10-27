@@ -66,7 +66,8 @@ STATUS_LINE = re.compile(r"^\|\s*\*{0,2}M(\d+)\b")
 PENDING_MARKERS = ("⬜", "🟡", "未开始", "未执行", "待执行", "待确认", "未开工")
 
 # 文档已点名、但所属里程碑未完成的脚本：{相对路径: 里程碑号}
-PENDING_TOOLS = {"tools/check-release.py": 6}
+# M6 已落位：tools/check-release.py 实物在仓，登记项按纪律删除（登记过期即红的反向面）。
+PENDING_TOOLS: dict[str, int] = {}
 # 确实不打算实现的脚本（理由写在这里）
 EXEMPT_TOOLS: set[str] = set()
 

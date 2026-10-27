@@ -70,8 +70,8 @@ py -3.12 -m crsscope --help                    # CLI 面
 
 ## 六、未落位工具登记（`PENDING_TOOLS`）
 
-| 脚本 | 落位里程碑 | 说明 |
-|---|---|---|
-| `tools/check-release.py` | M6 | 发布终态门（三档：`--pre-tag` / 离线 / `--online`）尚未实现 |
+**当前无未落位工具**：`tools/check-release.py` 已随 M6 落位（三档：`--pre-tag` / 离线默认 / `--online`），
+已按纪律从 `tools/check-sprint-layout.py` 的 `PENDING_TOOLS` 删除登记条目。
 
-> 里程碑翻 ✅ 后必须从 `tools/check-sprint-layout.py` 的 `PENDING_TOOLS` 删掉对应条目，否则布局门变红。
+> 若将来再出现"文档点名但未实现"的脚本，把 `{相对路径: 里程碑号}` 登记回 `PENDING_TOOLS`
+> 并在此表补行；里程碑翻 ✅ 后必须删掉对应条目，否则布局门变红。

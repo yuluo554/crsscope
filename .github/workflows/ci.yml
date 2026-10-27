@@ -40,6 +40,9 @@ jobs:
       - name: Layout gate mutation verification (every mutation must go red)
         run: python tools/mutate-layout-gate.py
 
+      - name: Release gate (offline tier only; no git metadata, no network)
+        run: python tools/check-release.py
+
       - name: Install (editable, dev extras)
         run: python -m pip install -e ".[dev]"
 
@@ -57,15 +60,16 @@ jobs:
           done
           echo "smoke ok"
 
-      - name: Unimplemented commands must exit 3 (never 0)
+      - name: Unknown subcommand must exit 2 (usage error, never 0)
         shell: bash
         run: |
           set -uo pipefail
           rc=0
-          # 只剩 report 未实现（M6）；geojson / tiles 已在 M5 落位，不能再拿它们当靶子。
-          python -m crsscope report nonexistent.json || rc=$?
-          if [ "$rc" -ne 3 ]; then
-            echo "expected exit 3 for unimplemented command, got $rc"
+          # M6 起 report 已落位，"未实现命令 exit 3"的靶子不存在了；
+          # 保留的是另一条硬契约：不存在的子命令必须走用法错误（exit 2），绝不许 0。
+          python -m crsscope no-such-subcommand || rc=$?
+          if [ "$rc" -ne 2 ]; then
+            echo "expected exit 2 for unknown subcommand, got $rc"
             exit 1
           fi
           echo "contract ok (rc=$rc)"

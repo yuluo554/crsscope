@@ -10,13 +10,15 @@ import json
 import os
 import platform
 import re
+from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from . import __version__
-from .errors import CrsscopeError
+from .errors import CrsscopeError, EnvironmentMissing, InvalidInput, UNDECIDABLE_STATUS, UsageError
 
 #: `generated_at` 的兜底值（无 `SOURCE_DATE_EPOCH` 时）。固定值 = 双跑可逐字节比对。
 FALLBACK_TIMESTAMP = "1970-01-01T00:00:00Z"
@@ -203,3 +205,126 @@ def write_reports(
         path.write_text(render_markdown(result), encoding="utf-8", newline="\n")
         written["report.md"] = str(path)
     return written
+
+
+# ── `report` 子命令：多份 report.json 的汇总与门禁（HANDOFF-M6 §三A）────────
+#
+# 聚合只产出 findings 与汇总事实；退出码折算交回 `cli._emit` → `errors.outcome_code`
+#（§4.9 的全序只在一处实现）——**本模块不另写第二份退出码映射**。
+# 失败路径按 §4.9：缺文件 → 3（EnvironmentMissing）；JSON 不可解析 / 顶层缺
+# `findings` → 4（InvalidInput）。这三者都在判定阶段抛出，一个字节都不落盘。
+
+REPORT_COMMAND = "report"
+
+#: `header.command` 缺失时的兜底值。真实的五类报告都有该字段；兜底只为直调 `run()` 时不炸。
+_UNKNOWN_COMMAND = "unknown"
+
+
+def _load_report(path: Path) -> dict[str, Any]:
+    """读入并校验一份 report.json。结构不合法走 exit 4，与文件不存在（exit 3）分层。"""
+    if not path.is_file():
+        raise EnvironmentMissing(
+            f"文件不存在: {path.name}",
+            detail="report 子命令吃的是此前各子命令落盘的 report.json",
+        )
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise InvalidInput(f"JSON 不可解析: {path.name}（{exc}）") from exc
+    if not isinstance(payload, dict) or "findings" not in payload:
+        raise InvalidInput(
+            f"顶层缺 findings 成员: {path.name}",
+            detail="report.json 顶层必须是含 findings 数组的对象",
+        )
+    if not isinstance(payload["findings"], list):
+        raise InvalidInput(f"findings 不是数组: {path.name}")
+    return payload
+
+
+def _finding_from_dict(raw: Any, source: str) -> Finding:
+    """把 JSON 里的一条结果项还原成 `Finding`；形状不对按输入无效处理（exit 4）。"""
+    if not isinstance(raw, dict) or not isinstance(raw.get("status"), str):
+        raise InvalidInput(f"findings 元素缺 status 字符串: {source}")
+    evidence = raw.get("evidence")
+    evidence = dict(evidence) if isinstance(evidence, dict) else {}
+    evidence["source"] = source  # 逐条标出它来自哪份输入报告（basename，无绝对路径）
+    reason = raw.get("reason")
+    return Finding(
+        check=str(raw.get("check", "")),
+        status=raw["status"],
+        detail=str(raw.get("detail", "")),
+        reason=reason if isinstance(reason, str) else None,
+        evidence=evidence,
+    )
+
+
+def gate_verdict(counts: dict[str, int]) -> str:
+    """门禁结论（人读面）。
+
+    只**描述**聚合内容的结论文案，语序刻意与 `errors.outcome_code` 的优先级一致
+    （灰区优先于命中）；退出码数值仍由 `outcome_code` 折算，这里不出现数字。
+    """
+    undecided = counts.get(UNDECIDABLE_STATUS, 0)
+    if undecided:
+        return (
+            f"存在不可判定结果 {undecided} 项（灰区优先：需人工介入，"
+            "默认以退出码 5 报出，--allow-undecidable 可显式放行）"
+        )
+    hits = counts.get("conflict", 0) + counts.get("error", 0)
+    if hits:
+        return f"门禁命中：conflict / error 共 {hits} 项"
+    return "门禁通过：聚合结果无 conflict / error / undecidable"
+
+
+def run(paths: Sequence[Path]) -> ModuleResult:
+    """`report` 子命令入口（`plan/03` §七：汇总与门禁）。
+
+    聚合规则：每份输入的 findings **原样并入**（逐条加 `evidence.source` 标明出处），
+    汇总层不重判、不改级别——重判是各判定子命令的事，这里只回答"合在一起看怎么样"。
+
+    输入标签 = basename（报告里不许出现绝对路径）；同名输入按出现序追加 `#2`/`#3`
+    消歧——五份输入可以都叫 `report.json`，归属必须仍然可证。
+    """
+    path_list = list(paths)
+    if not path_list:
+        raise UsageError("report 需要至少一份 report.json")
+
+    seen: dict[str, int] = {}
+    labels: list[str] = []
+    for path in path_list:
+        name = path.name
+        seen[name] = seen.get(name, 0) + 1
+        labels.append(name if seen[name] == 1 else f"{name}#{seen[name]}")
+
+    findings: list[Finding] = []
+    sources: list[dict[str, Any]] = []
+    for path, label in zip(path_list, labels):
+        payload = _load_report(path)
+        header = payload.get("header")
+        header = header if isinstance(header, dict) else {}
+        command = header.get("command")
+        if not isinstance(command, str) or not command:
+            command = _UNKNOWN_COMMAND
+        module_findings = [_finding_from_dict(raw, label) for raw in payload["findings"]]
+        findings.extend(module_findings)
+        raw_exit = payload.get("exit_code")
+        sources.append(
+            {
+                "file": label,
+                "command": command,
+                "exit_code": raw_exit if isinstance(raw_exit, int) else None,
+                "findings": len(module_findings),
+            }
+        )
+
+    counts: dict[str, int] = dict(sorted(Counter(f.status for f in findings).items()))
+    return ModuleResult(
+        command=REPORT_COMMAND,
+        findings=findings,
+        payload={
+            "header": build_header(REPORT_COMMAND, report_count=len(path_list)),
+            "verdict": gate_verdict(counts),
+            "sources": sources,
+            "counts": counts,
+        },
+    )

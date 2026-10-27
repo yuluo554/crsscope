@@ -10,11 +10,10 @@ pip install -e ".[dev]"
 crsscope --help
 ```
 
-当前版本 `0.1.0`。**五个判定子命令全部可用**：`crsscope decl`（声明-内容一致性）、
+当前版本 `0.1.0`。**六个子命令全部可用**：`crsscope decl`（声明-内容一致性）、
 `crsscope detect`（偏移检测与残差）、`crsscope xdiff`（跨实现差分）、
-`crsscope geojson`（RFC 7946 结构与声明审计）、`crsscope tiles`（瓦片轴序 / 投影一致性）。
-`crsscope report`（多份报告汇总与门禁）的参数面与契约已定，调用时以退出码 3（环境不满足）报
-`not implemented`。进度见 [`plan/05-里程碑与发布.md`](plan/05-里程碑与发布.md)。
+`crsscope geojson`（RFC 7946 结构与声明审计）、`crsscope tiles`（瓦片轴序 / 投影一致性）、
+`crsscope report`（多份报告汇总与门禁）。进度见 [`plan/05-里程碑与发布.md`](plan/05-里程碑与发布.md)。
 
 ---
 
@@ -39,7 +38,7 @@ crsscope --help
 
 ---
 
-## 五个子命令
+## 六个子命令
 
 | 命令 | 模块 | 回答 |
 |---|---|---|
@@ -48,6 +47,7 @@ crsscope --help
 | `crsscope xdiff <file> --target wgs84` | M3 跨实现差分 | 同一坐标喂三个本地实现，**两两差多少**，**边界结论一不一致** |
 | `crsscope geojson <file>…` | M4 RFC 7946 结构 | 环方向 / 轴序 / bbox / `crs` / 精度（含 check-geojson 不查的三项） |
 | `crsscope tiles <file>` | M5 瓦片投影 | `y` 轴翻转（XYZ vs TMS）、zoom↔bbox、跨 180° 环绕 |
+| `crsscope report <report.json>…` | 汇总与门禁 | 多份报告合在一起看：逐条归属、每份的 `command`/`exit_code`、门禁结论 |
 
 输出双轨：`report.json`（机器可复算）+ `report.md`（人读），**同一份结果对象渲染两次**。
 每条结论带 `evidence`（命中的规则 id / 声明来源 / 边界框来源）。
@@ -110,8 +110,18 @@ crsscope tiles data/fixtures/tile_flip/out/tile_flip.json
   `z=3, y=9` 越出 `[0,7]` → **单点即判** error；跨日界线的 `x` 环绕（`x=0` 与 `x=3` 并存）
   缺 `wrap: true` → `wrap` conflict。不做渲染 / 切片 / 图片。
 
-> `crsscope report` 当前会以 **exit 3 + `not implemented`** 返回：参数面已定、汇总与门禁待 M6。
-> 这是有意设计——未实现的命令**不许**以 0 退出，否则 CI 会把"没跑"读成"跑过且没问题"。
+### 汇总与门禁（`crsscope report`）
+
+```bash
+crsscope report path/{a,b}/report.json --fail-on conflict,axis
+```
+
+- 每份输入的 findings **原样并入**，逐条带 `evidence.source`（输入的 basename；同名输入按出现序
+  标 `#2`/`#3`）——汇总层不重判、不改级别，重判是各判定子命令的事。
+- `sources` 汇总每份的 `command` / `exit_code` / 条数；`counts` 按状态计数；`verdict` 给门禁结论。
+- 退出码沿用全项目唯一映射（§4.9）：**灰区优先** → 聚合后存在 `undecidable` 即 **5**
+  （`--allow-undecidable` 放行）；否则命中 `conflict`/`error`（或 `--fail-on` 点名的类别）→ **1**。
+- 失败路径：文件不存在 → **3**；JSON 不可解析 / 顶层缺 `findings` → **4**（与结构性问题同一分层）。
 
 
 ## 三条设计纪律（会体现在输出的每个字段上）
@@ -139,8 +149,12 @@ crsscope tiles data/fixtures/tile_flip/out/tile_flip.json
 ```bash
 py -3.12 tools/check-sprint-layout.py     # 布局门（0 全绿 / 1 有 FAIL / 2 用法）
 py -3.12 tools/mutate-layout-gate.py      # 门的变异验证（每组必须变红）
+py -3.12 tools/check-release.py           # 发布门离线档（进 CI；不读 git、不联网）
 py -3.12 -m pytest -q
 ```
+
+发布门另有两档，只在发布时用：`--pre-tag`（打 tag 之前；tag 创建后必红）与
+`--online --tag <tag>`（Release 发布之后，核对附件与 tag 树共有文件逐字节相等）。
 
 方法论：本仓库遵循 `ai-tool-project-sprint` 的方法论布局，入口见 [`AGENTS.md`](AGENTS.md)。
 
