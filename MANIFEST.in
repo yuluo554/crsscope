@@ -1,0 +1,13 @@
+# 源码包自足性：解包后必须能"装 → 跑测试 → 跑 CLI"（阶段 7 出口门）。
+# setuptools 默认只收 tests/test*.py，**漏掉 conftest.py** —— 它是 fixture 与 sys.path 的唯一来源，
+# 缺了它解包树里 test_io.py 直接报 "fixture 'write_file' not found"（2026-10-27 实测）。
+include README.md
+include LICENSE
+include AGENTS.md
+recursive-include tests *.py
+recursive-include tools *.py
+recursive-include plan *.md
+recursive-include data *.md *.py *.json
+# 掩膜与语料生成物不入包（`data/**/out/` 已由 .gitignore 排除），只入生成脚本与金标。
+prune data/fixtures/*/out
+prune data/mask/out

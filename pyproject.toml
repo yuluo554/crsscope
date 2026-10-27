@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crsscope"
+dynamic = ["version"]
+description = "空间参考语义审计器：判定坐标参考系、量化偏移与不可消解残差"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "yuluo554" }]
+keywords = ["geojson", "gpx", "crs", "wgs84", "gcj02", "rfc7946", "audit", "cli"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: GIS",
+]
+# 零运行时依赖是承诺，不是巧合：tests/test_no_third_party.py 用 AST 扫全仓守门。
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+crsscope = "crsscope.cli:main"
+
+[tool.setuptools.dynamic]
+# 版本唯一定义处 = src/crsscope/__init__.py 的 __version__
+version = { attr = "crsscope.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

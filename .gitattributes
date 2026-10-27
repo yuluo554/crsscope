@@ -1,0 +1,18 @@
+# 源码行尾统一 LF：双跑逐字节比对与 fixture `--check` 都按字节判，CRLF 会让判据在同一条命令上翻面。
+* text=auto eol=lf
+
+# ---- 字节即被测对象的文件：git 不许碰 ----
+# 语料金标与掩膜网格登记了 sha256/逐字节 --check 的语义，一旦被 EOL 归一就失配。
+*.json      -text
+*.geojson   -text
+*.gpx       -text
+*.prj       -text
+*.csv       -text
+
+# 二进制
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.zip binary
+*.gz  binary
+*.whl binary
