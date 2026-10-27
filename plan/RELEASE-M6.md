@@ -49,28 +49,49 @@ tag 名 `v0.1.1`；注释式 tag（annotated）。以下事实在打 tag 的**�
 
 ## 二、tag 后追加
 
-以下字面值**只能**出现在 tag 之后（本文件所在的提交晚于 `v0.1.0`）。
+以下字面值**只能**出现在 tag 之后（本文件所在的提交晚于 `v0.1.1`）。
+
+### 2.1 当前发布版 `v0.1.1`
+
+| 项 | 字面值 |
+|---|---|
+| annotated tag OID | `b521957847752359e8bf4b58ac984abab8b5115c` |
+| tag 指向的 commit | `556cf990b82d7ea1eb43bdc25a380c9f02585c30`（`fix(release): v0.1.1 …`） |
+| Release URL | <https://github.com/yuluo554/crsscope/releases/tag/v0.1.1> |
+| Release 附件 | 3 份：wheel、sdist、`SHA256SUMS` |
+| wheel sha256 | `bc07efb7850e7e3110421740a9776eaf991748001f7fc45d40c18d9588788315` |
+| sdist sha256 | `616168b91fea4ed3fc8b7d7fe644a0d4d9baee7f8b84e77072fd9a1e8628ac93` |
+| 真下载复核 | `gh release download v0.1.1` → `sha256sum -c SHA256SUMS` 两条 OK → 与原产物 `cmp` 三项逐字节一致 |
+| 干净 venv 装下载件 | 全新 venv 装**下载来的** wheel → `0.1.1`；`geojson` / `tiles` / `report` 各跑一条真命令，退出码与源码态一致 |
+| 在线发布门 | `py -3.12 tools/check-release.py --online --tag v0.1.1` → 8 条判据全 PASS（共有文件 76 个、逐字节不一致 0 个） |
+| CI run（main push `556cf99`） | 见 `gh run list`；与 §2.2 的首推 run 同工作流 |
+| CI run（tag push `v0.1.1`） | 见 `gh run list`（tag 触发同一 workflow） |
+
+> **构建与 tag 的时序教训（第三版才做对）**：`v0.1.1` 第一次上传的附件是在**最后一次改码之前**
+> 构建的——`--online` 档随即报出 3 个共有文件逐字节不一致（`tools/check-release.py`、
+> `tests/test_release_gate.py`、`plan/05-里程碑与发布.md`）。这正是 `plan/05` §五 时序纪律 1
+> 的实证：**构建必须晚于交付面定稿**。处置：把 tag 指向的提交 `556cf99` 从干净工作树重新构建
+> 一次，再用 `gh release upload --clobber` 替换附件，重跑 `--online` 得 8/8。
+
+### 2.2 历史版 `v0.1.0`（保留，不删除、不移动）
 
 | 项 | 字面值 |
 |---|---|
 | annotated tag OID | `89caeffd8866946273bd669da7043cf64bef7f07` |
 | tag 指向的 commit | `0c5127f08d2f2312ea9c7d5208be3ef74e3a006a`（`feat(report+release): M6 …`） |
 | Release URL | <https://github.com/yuluo554/crsscope/releases/tag/v0.1.0> |
-| Release 附件 | 3 份：wheel、sdist、`SHA256SUMS` |
 | wheel sha256 | `cb0c06bf2074680e090b2e67945270e1fbfba8475ef4f113cfcd613bd50878b4` |
 | sdist sha256 | `2daed2d75d13e0b1e70e6137ed5363948698ba9590b385e0b2de8ebae74b5007` |
+| 已知缺陷 | 树内 `tools/check-release.py` 缺归档布局归一化（`--online` 档报"共有文件 0 个"）；`--pre-tag` 档守的是"仓库里一个 tag 都没有"（发布过一版后永远无法通过）。两者均在 `v0.1.1` 修正 |
 | CI run（main push） | `40537982093` — success（windows/ubuntu × 3.11/3.12 四组全绿） |
 | CI run（tag push） | `40537994706` — success |
-| 真下载复核 | `gh release download` → `sha256sum -c SHA256SUMS` 两条 OK → 与原产物 `cmp` 三项逐字节一致 |
-| 干净 venv 装下载件 | 全新 venv 装下载来的 wheel → `0.1.0`；`geojson` / `tiles` / `report` 各跑一条真命令，退出码与源码态一致 |
-| 在线发布门 | `py -3.12 tools/check-release.py --online --tag v0.1.0` → 8 条判据全 PASS（共有文件 74 个、逐字节不一致 0 个） |
 
 **复现双装态对拍**（在仓库外做，避免污染源树）：
 
 ```bash
 py -3.12 -m venv /tmp/v-wheel && py -3.12 -m venv /tmp/v-sdist
 /tmp/v-wheel/Scripts/pip install --no-index --find-links dist crsscope
-/tmp/v-sdist/Scripts/pip install dist/crsscope-0.1.0.tar.gz      # 需 setuptools>=77（build isolation）
+/tmp/v-sdist/Scripts/pip install dist/crsscope-0.1.1.tar.gz      # 需 setuptools>=77（build isolation）
 # 两态各跑同一组命令，再对拍报告字节
 crsscope geojson data/fixtures/geojson_struct/out/case-001_ring_cw.geojson --strict-ring --out-dir /tmp/o
 crsscope tiles   data/fixtures/tile_flip/out/tile_flip.json --out-dir /tmp/o
@@ -86,12 +107,12 @@ cmp /tmp/w/report.json /tmp/s/report.json && cmp /tmp/w/report.md /tmp/s/report.
 
 | # | M6 出口判据 | 三态 | 证据 / 理由 |
 |---|---|---|---|
-| 1 | `tools/check-release.py` 三档：`--pre-tag` / 离线默认 / `--online` | 实现 | `tests/test_release_gate.py` 27 项；三档各实跑：`--pre-tag` 6 PASS、离线 5 PASS、`--online` 8 PASS |
-| 2 | 干净环境：真下载附件 → 中立目录解包 → 逐条敲 README | 实现 | §二「真下载复核」+「干净 venv 装下载件」；`sha256sum -c` 两条 OK、`cmp` 三项一致 |
-| 3 | 附件与 `git archive <tag>` 解包树的共有文件逐字节相等（不是 `diff -r` 零差异） | 实现 | `--online` 档 `REL.COMMON_FILES`：共有文件 74 个（下限 5）、不一致 0 个；归一化逻辑由 `test_wheel_layout_is_normalised_to_source_paths` / `test_sdist_container_directory_is_stripped` 守 |
+| 1 | `tools/check-release.py` 三档：`--pre-tag` / 离线默认 / `--online` | 实现 | `tests/test_release_gate.py` 28 项；三档各实跑：`--pre-tag` 6 PASS、离线 5 PASS、`--online` 8 PASS |
+| 2 | 干净环境：真下载附件 → 中立目录解包 → 逐条敲 README | 实现 | §二 2.1「真下载复核」+「干净 venv 装下载件」；`sha256sum -c` 两条 OK、`cmp` 三项一致 |
+| 3 | 附件与 `git archive <tag>` 解包树的共有文件逐字节相等（不是 `diff -r` 零差异） | 实现 | `--online --tag v0.1.1` 的 `REL.COMMON_FILES`：共有文件 76 个（下限 5）、不一致 0 个；归一化逻辑由 `test_wheel_layout_is_normalised_to_source_paths` / `test_sdist_container_directory_is_stripped` / `test_normalised_common_file_mismatch_is_still_caught` 守 |
 | 4 | 断网跑通（`docker run --network none` 或用 `--offline` 冒烟） | 实现（`--offline` 冒烟通道） | 本机无 docker（`docker: command not found`，2026-10-27 实测）→ 走 PLAN 允许的第二通道并加强：`sitecustomize` 审计钩子拦截全部 `socket.*`，含阳性探活；`tests/test_offline_runtime.py` 6 项 |
 | 5 | `plan/RELEASE-M6.md` 两栏 + 阶段 7 覆盖对账表 | 实现 | 本文件 §一 / §二 / §三 |
-| 6 | GitHub **公开**仓库 + tag + Release 附产物 | 实现 | <https://github.com/yuluo554/crsscope>（public）；annotated tag `v0.1.0`；Release 3 份附件 |
+| 6 | GitHub **公开**仓库 + tag + Release 附产物 | 实现 | <https://github.com/yuluo554/crsscope>（public）；annotated tag `v0.1.1`；Release 3 份附件 |
 | 7 | CI 首推全绿（`plan/05` §四"CI 实跑"翻 ✅ 的前提） | 实现 | run `40537982093`（main）/ `40537994706`（tag），四组矩阵 success；日志含布局门 11 PASS、发布门 5 PASS、`smoke ok`、`contract ok (rc=2)` |
 | 8 | 跨 Python 版本行为（3.11 与 3.12） | 实现（经 CI） | 本机只有 3.12 参与验证；CI 矩阵在 3.11 与 3.12 上各跑全量测试，均 success |
 | 9 | 真实地理掩膜 / 真实 GPS 轨迹回归 | 不适用 | 项目形态决定：首期掩膜是 1° 构造网格（不承诺海岸线准确性）；真实轨迹属隐私红线（脱敏不可验证），永不接受 |
@@ -107,5 +128,9 @@ cmp /tmp/w/report.json /tmp/s/report.json && cmp /tmp/w/report.md /tmp/s/report.
 - **本机未验证项**（如实记录，不得写成绿）：
   - `docker run --network none` 通道未用过（本机无 docker）；断网证据来自审计钩子通道。
   - 真实地理掩膜与真实 GPS 轨迹回归：项目形态决定不做（见 §三 #9）。
-- **发布门重跑入口**：任何时候可跑离线档；`--pre-tag` 在 tag 已存在后会**必红**（这是设计），
-  核对已发布事实请用 `--online --tag v0.1.0`。
+- **发布门重跑入口**：任何时候可跑离线档；`--pre-tag` 在**目标 tag** 已存在后会**必红**（这是设计，
+  目标名缺省按版本推 `v<version>`，也可 `--tag` 显式给），核对已发布事实请用 `--online --tag v0.1.1`。
+- **两次时序教训**（都记在这里，避免下一棒重犯）：
+  1. 产物必须**能核对自身**：`v0.1.0` 的 tag 树里带着有缺陷的发布门，判据在自身上跑不通。
+  2. 构建必须**晚于交付面定稿**：`v0.1.1` 首次上传的附件是在最后一次改码前构建的，`--online`
+     立刻报出 3 个文件字节不一致；重建并 `--clobber` 替换后才得 8/8。
