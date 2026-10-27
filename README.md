@@ -10,8 +10,9 @@ pip install -e ".[dev]"
 crsscope --help
 ```
 
-当前版本 `0.1.0`。**判定逻辑尚未实现**：五个子命令的参数面与契约已定，调用时以退出码 3
-（环境不满足）报 `not implemented`。进度见 [`plan/05-里程碑与发布.md`](plan/05-里程碑与发布.md)。
+当前版本 `0.1.0`。**部分判定已落位**：`crsscope decl`（声明-内容一致性）可用；
+其余四个子命令的参数面与契约已定，调用时以退出码 3（环境不满足）报 `not implemented`。
+进度见 [`plan/05-里程碑与发布.md`](plan/05-里程碑与发布.md)。
 
 ---
 
@@ -62,9 +63,25 @@ crsscope report report.json --fail-on conflict,axis
 ```
 
 公共参数：`--json`（机读到 stdout）、`--out-dir`（报告落盘目录）、`--fail-on`（命中即 exit 1 的类别，
-逗号分隔）、`--allow-undecidable`（存在 `undecidable` 时仍 exit 0）。
+逗号分隔；**缺省时 `conflict` / `error` 即命中**，给了该参数就收窄为只认点名的类别）、
+`--allow-undecidable`（存在 `undecidable` 时仍 exit 0）。
 
-> 骨架阶段这六条命令都会以 **exit 3 + `not implemented`** 返回：参数面已定、判定逻辑待 M2–M6。
+### 最小复现（`decl` 已可用，语料为程序化生成）
+
+```bash
+py -3.12 data/fixtures/declared_lie/gen.py --out data/fixtures/declared_lie
+py -3.12 data/fixtures/swapped_axis/gen.py --out data/fixtures/swapped_axis
+crsscope decl data/fixtures/declared_lie/out/declared_lie.geojson --declared-crs 4326 --allow-undecidable --fail-on magnitude
+crsscope decl data/fixtures/swapped_axis/out/swapped_axis.geojson --declared-crs 4326 --fail-on axis
+```
+
+- **`declared_lie`**：`crs` 成员声明 4326、坐标却是 3857 米域 → `magnitude` 项 `conflict`，
+  上面那条命令 **exit 1**。**裸跑则 exit 5**——米域样本进不了轴序的可判定子集，`axis` 是灰区，
+  而灰区优先于命中（§4.9）。
+- **`swapped_axis`**：`(lon, lat)` 被写成 `(lat, lon)` → `axis` 项 `conflict`，**exit 1**；
+  量级项保持 `consistent`（两类样本互不串扰，`data/README.md` §4.1 末条）。
+
+> `decl` 之外的四个子命令当前会以 **exit 3 + `not implemented`** 返回：参数面已定、判定逻辑待 M3–M5。
 > 这是有意设计——未实现的命令**不许**以 0 退出，否则 CI 会把"没跑"读成"跑过且没问题"。
 
 

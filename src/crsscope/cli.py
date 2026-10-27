@@ -13,7 +13,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from . import __version__, decl, detect, geojson, report, tiles, xdiff
-from .errors import CrsscopeError
+from .errors import CrsscopeError, outcome_code
 
 PROG = "crsscope"
 
@@ -132,6 +132,13 @@ _HANDLERS: dict[str, Callable[[argparse.Namespace], report.ModuleResult]] = {
 
 
 def _emit(result: report.ModuleResult, args: argparse.Namespace) -> int:
+    # 退出码在这里一次性折算（§4.9 的 `5→1→0` 段）——判定模块不认识 CLI 参数，
+    # 只产出 findings；"命中"与"允许不可判定"是**命令层**的概念。
+    result.exit_code = outcome_code(
+        result.findings,
+        fail_on=args.fail_on,
+        allow_undecidable=args.allow_undecidable,
+    )
     payload = dict(result.payload)
     payload.setdefault("findings", [f.as_dict() for f in result.findings])
     payload["exit_code"] = result.exit_code

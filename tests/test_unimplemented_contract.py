@@ -16,7 +16,6 @@ from crsscope import cli
 
 #: {子命令: 落位里程碑}。实现完成后**必须**从本表删除对应项。
 UNIMPLEMENTED = {
-    "decl": "M2",
     "detect": "M3",
     "xdiff": "M4",
     "geojson": "M5",
@@ -25,7 +24,6 @@ UNIMPLEMENTED = {
 }
 
 ARGS = {
-    "decl": ["x.geojson"],
     "detect": ["x.geojson"],
     "xdiff": ["x.geojson", "--target", "wgs84"],
     "geojson": ["x.geojson"],

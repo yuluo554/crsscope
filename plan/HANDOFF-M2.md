@@ -1,5 +1,8 @@
 # HANDOFF-M2 · 下一步：模块 M1「声明-内容一致性」
 
+> **本单已完成（2026-10-27）**：DoD 全绿，落位记录见 `plan/05` §二之二与 `plan/00` 里程碑表。
+> 下一棒看 `plan/HANDOFF-M3.md`。
+>
 > 用法：新对话 `/goal 读取 "<项目绝对路径>\plan\HANDOFF-M2.md" 继续完成任务`
 > **第一动作（硬约束③）**：先跑布局门 `py -3.12 tools/check-sprint-layout.py`，必须全绿再动手。
 
@@ -135,16 +138,20 @@ M1（数据）已就绪，M2（声明一致性）可开工；**不要跳到 M3 �
 
 ## 六、DoD 逐项 checklist（M2）
 
-- [ ] `decl.py` 的 `run()` 按固定顺序实现五个检查项
-- [ ] `swapped_axis` 命中 `conflict/axis`（**单独**，量级不串扰）
-- [ ] `declared_lie` 命中 `conflict/magnitude`（**单独**，轴序不串扰）
-- [ ] 可判定样本 `< 5` → `undecidable` + exit 5；`--allow-undecidable` → exit 0
-- [ ] `--declared-crs gcj02` → exit 2 并列出合法枚举
-- [ ] `UNIMPLEMENTED` 表里删掉 `decl`
-- [ ] 布局门全绿、变异 10/10、pytest 全绿（计数会从 146 起涨）
-- [ ] `python -m build` 成功；干净 venv 装 sdist 后 `crsscope --help` 正常
-- [ ] `plan/00` 与 `plan/05` 的 M2 状态同提交翻 ✅（**台账里别留"模块 M2"字样**）
-- [ ] `plan/HANDOFF-M3.md` 已写
+- [x] `decl.py` 的 `run()` 按固定顺序实现五个检查项
+- [x] `swapped_axis` 命中 `conflict/axis`（**单独**，量级不串扰）
+- [x] `declared_lie` 命中 `conflict/magnitude`（**单独**，轴序不串扰）
+- [x] 可判定样本 `< 5` → `undecidable` + exit 5；`--allow-undecidable` → exit 0
+- [x] `--declared-crs gcj02` → exit 2 并列出合法枚举
+- [x] `UNIMPLEMENTED` 表里删掉 `decl`
+- [x] 布局门全绿、变异 10/10、pytest 全绿（146 → **168**）
+- [x] `python -m build` 成功；干净 venv 装 sdist 后 `crsscope --help` 正常
+- [x] `plan/00` 与 `plan/05` 的 M2 状态同提交翻 ✅（**台账里别留"模块 M2"字样**）
+- [x] `plan/HANDOFF-M3.md` 已写
+
+> **实测修正**：§三.6 期望裸命令 → exit 1 与 `data/README.md` §4.9 字面互斥；
+> 已定案为"`conflict`/`error` 默认即命中，且**灰区优先**"，见 `plan/00` 决策 ⑪。
+> 因此 `declared_lie` 裸跑 → **5**（它的 `axis` 是灰区），加 `--allow-undecidable` 才 → 1。
 
 ---
 
