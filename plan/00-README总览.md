@@ -6,7 +6,7 @@
 > - **交付形态**：**纯本地 Python CLI**（可进 CI；**不做地图渲染、不联网**）。唯一形态，不设备选。
 > - **定位宣言**（原文照录）："所有头部库都在**悄悄修**：geojsonhint 已归档、check-geojson 明示不查环方向且忽略 `crs`、gcoord/coordtransform 只转换不判定、PROJ 里 GCJ-02 零命中、GDAL 的 RFC7946 默认 NO、gpxpy 把异常删掉不报。**'判定 + 残差 + 问责'这一层无人占位。** 本工具回答：这批坐标是哪个坐标系、会不会整体偏几百米、有没有混用、残差多少。"
 > - **检索窗口**：代理实际检索窗口 **2026-10-27T10:56Z–11:30Z**（`wikipedia.org` / `wiki.openstreetmap.org` 443 超时、github.com 直连被重置，均如实标注；`rfc-editor.org` 与 `epsg.io` 可直连 ✅）
-> - **状态**：**M2 声明-内容一致性 + M3 GCJ 检测与残差 + M4 跨工具差分 + M5 GeoJSON 结构 / 瓦片投影已完成**（2026-10-27）：`crsscope decl` 五项判据（量级 / 轴序 / 单位 / 混用 / 范围）、`detect` 六环节（逆变换 / 覆盖检查 / 三路评分 / 排序置信 / 残差三段 / 边界画像）、`xdiff` 三实现差分（两两米级差异 / 两库边界结论表 / 跳变点 / `not_converged` 如实报出）、`geojson` 七项结构与声明审计（含 check-geojson 明示不查的环方向 / 精度 / `crs` 三项；R1+R2 成对分级）、`tiles` 五项轴序/投影检查（`y` 轴翻转静态检出、`y` 越界单点即判、`zoom_bbox`、`wrap`、3857/4326 混用）全部落位；D2 类水域轨迹可复现、边界外不硬判、两类边界分歧均可复现；M1 数据先行（七份 fixture + 离线掩膜）已在位。**只剩 `report` 未实现**（里程碑 M6，exit 3 + `not implemented`）——进度以 `plan/05` 状态表为准。
+> - **状态**：**M1–M6 全部完成**（2026-10-27，标记为发布里程碑 M6）：M1 数据先行（七份 fixture + 离线掩膜，`--check` 逐字节一致）；M2 `crsscope decl` 五项判据（量级 / 轴序 / 单位 / 混用 / 范围）；M3 `detect` 六环节（逆变换 / 覆盖检查 / 三路评分 / 排序置信 / 残差三段 / 边界画像）；M4 `xdiff` 三实现差分（两两米级差异 / 两库边界结论表 / 跳变点 / `not_converged` 如实报出）；M5 `geojson` 七项结构与声明审计（含 check-geojson 明示不查的环方向 / 精度 / `crs` 三项；R1+R2 成对分级）+ `tiles` 五项轴序/投影检查；M6 `report` 多份报告汇总与门禁 + `tools/check-release.py` 三档发布门 + annotated tag `v0.1.0` + GitHub Release 附产物（wheel / sdist / `SHA256SUMS`）+ `plan/RELEASE-M6.md` 留档，CI 首推四组矩阵全绿。进度与证据以 `plan/05` 状态表与 `plan/RELEASE-M6.md` 为准。
 
 ---
 
@@ -27,7 +27,7 @@
 | `tools/check-sprint-layout.py` | 布局门（零依赖，10 条判据） | ✅ v1 |
 | `tools/mutate-layout-gate.py` | 门的变异验证（每组必须变红） | ✅ v1 |
 | `plan/HANDOFF-*.md` | 里程碑交接单 | ✅ M1 / M2 / M3 / M4 / M5 / M6 已出（`plan/HANDOFF-M1.md` ～ `plan/HANDOFF-M6.md`） |
-| `plan/RELEASE-M6.md` | 发布留档（tag 时点 / tag 后追加两栏） | ⬜ 待建（M6） |
+| `plan/RELEASE-M6.md` | 发布留档（tag 时点 / tag 后追加两栏 + 阶段 7 覆盖对账） | ✅ v1（2026-10-27） |
 
 > 状态列随里程碑同步翻转；不得一处标 ✅ 而另一处标 ⬜。
 
@@ -93,12 +93,12 @@
 | zoom ↔ bbox / 跨 180° 环绕 | — | `tiles` | 覆盖数与单调性自洽 | ✅ 已交付（里程碑 M5，2026-10-27） |
 | 四份语料（四坐标版本 / 写反轴序 / 声明撒谎 / 边界分歧） | 程序化构造 | `data/fixtures/**/gen.py` + `expect.json` | `--check` 重生成逐字节一致 | ✅ 已交付（2026-10-27） |
 | 离线水陆掩膜（≤1°） | 仓库内构造 | `data/mask/` | 分辨率上限声明 + 未知格不计入分母 | ✅ 已交付（2026-10-27） |
-| 零网络 / 零遥测 | — | 全部子命令 | 断网跑通；代码内无 HTTP 客户端 → `tests/test_no_network.py`（AST 扫全仓 `import`） | 🟡 守门已落位；**断网实跑待 M6** |
+| 零网络 / 零遥测 | — | 全部子命令 | 断网跑通；代码内无 HTTP 客户端 → `tests/test_no_network.py`（AST 扫全仓 `import`）；**运行时断网实跑** → `tests/test_offline_runtime.py`（审计钩子拦截 `socket.*`，含阳性探活） | ✅ 已交付（里程碑 M6，2026-10-27） |
 | 零第三方运行时依赖 | — | `pyproject.toml` + `src/**` | `tests/test_no_third_party.py`（AST 扫全仓 import，只允许标准库 + 本包） | ✅ 骨架已落位（2026-10-27） |
-| 未实现能力必须 exit 3 且打 `not implemented` | 决策 ⑦b | 五子命令 + `report` | `tests/test_unimplemented_contract.py` | ✅ 骨架已落位（2026-10-27） |
+| 未实现能力必须 exit 3 且打 `not implemented` | 决策 ⑦b | 五子命令 + `report` | `tests/test_unimplemented_contract.py`（**M6 后表已清空**，保留显式空表断言与"处理器完备"断言） | ✅ 已交付（里程碑 M6 收尾，2026-10-27） |
 | fixture 可重建 | 生成脚本固定输入 | `data/fixtures/**/gen.py --check` | 逐字节一致 | ✅ 已交付（2026-10-27） |
-| 发布三件套 | — | tag / Release 附产物 / `plan/RELEASE-M6.md` | tag 树内含留档；附件 sha256 | ⬜ 待建（里程碑 M6） |
-| **发布门：全仓不含肯定式 "MUST NOT"** | 决策 ① | `README.md` / `AGENTS.md` / `plan/**` / `src/**` / `data/**` | `tests/test_wording.py` 全仓扫描（允许"RFC 没有该条款"这类否定句，禁止任何强制禁用式表述） | 🟡 守门已落位；**发布门 `tools/check-release.py` 待 M6** |
+| 发布三件套 | — | tag / Release 附产物 / `plan/RELEASE-M6.md` | tag 树内含留档；附件 sha256（`--online` 档：共有文件逐字节相等 + `SHA256SUMS` 复核） | ✅ 已交付（里程碑 M6，2026-10-27） |
+| **发布门：全仓不含肯定式 "MUST NOT"** | 决策 ① | `README.md` / `AGENTS.md` / `plan/**` / `src/**` / `data/**` | `tests/test_wording.py` 全仓扫描（允许"RFC 没有该条款"这类否定句，禁止任何强制禁用式表述）；发布门 `tools/check-release.py` 三档同在位 | ✅ 已交付（里程碑 M6，2026-10-27） |
 
 ---
 
@@ -114,7 +114,7 @@
 | M3 | **GCJ 检测与残差**（模块 M2） | D2 类水域轨迹可复现（正确假设把落水率压到近零）；边界外输出 `out_of_coverage`；`residual.kind` 三段齐；`boundary_profiles` 两库结论可不同 | ✅ 已完成（2026-10-27） |
 | M4 | **跨工具差分**（模块 M3） | 73.2°E 与 2.0°N 两类分歧均报出，5°N 报一致；迭代不收敛报 `not_converged`，不静默 | ✅ 已完成（2026-10-27） |
 | M5 | **GeoJSON 结构（模块 M4）+ 瓦片/投影（模块 M5）** | check-geojson 不查的三项都查；R1+R2 成对引用可被变异咬住；`y` 轴翻转静态检出。**瓦片只作为一个检查项，不做渲染/切片** | ✅ 已完成（2026-10-27） |
-| M6 | 发布 | **git tag + GitHub Release（附产物）+ `plan/RELEASE-M6.md` 发布留档**；干净环境按 README 跑通；断网跑通；发布 GitHub **公开仓库** | ⬜ 待开工 |
+| M6 | 发布 | **git tag + GitHub Release（附产物）+ `plan/RELEASE-M6.md` 发布留档**；干净环境按 README 跑通；断网跑通；发布 GitHub **公开仓库** | ✅ 已完成（2026-10-27） |
 
 **里程碑 → 模块映射**：里程碑 M2 ↔ 模块 M1｜M3 ↔ 模块 M2｜M4 ↔ 模块 M3｜M5 ↔ 模块 M4 + M5｜M1 与 M6 无对应模块（语料 / 发布）。
 

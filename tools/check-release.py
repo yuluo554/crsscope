@@ -187,6 +187,41 @@ def collect_relative_files(root: Path) -> set[str]:
     return {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
 
 
+def _candidate_roots(unpacked: Path, tree_files: set[str]) -> list[Path]:
+    """候选解包根：先试原样，再试剥掉归档自带的唯一顶层目录（sdist 的 `crsscope-0.1.0/`）。
+
+    **不能无条件剥**：wheel 只有一个顶层包目录 `crsscope/`，剥掉它就丢光 `crsscope/*.py`
+    （实测：判据变成 0 个共有文件）。所以每个候选都要求"归一化后能命中 tag 树"才采用。
+    """
+    entries = [
+        p for p in unpacked.iterdir() if p.name != "__pycache__" and not p.name.endswith(".dist-info")
+    ]
+    dirs = [p for p in entries if p.is_dir()]
+    stripped = dirs[0] if len(dirs) == 1 and not any(p.is_file() for p in entries) else None
+    roots = [unpacked] + ([stripped] if stripped is not None else [])
+    hit = [r for r in roots if _asset_map(r, tree_files)]
+    return hit or [unpacked]
+
+
+def _asset_map(root: Path, tree_files: set[str]) -> dict[str, Path]:
+    """附件解包树 → **tag 树相对路径** 的映射。
+
+    两种归档布局都要归一化到源树路径，否则"共有文件"永远为空：
+    - **sdist**：`crsscope-<版本>/src/crsscope/x.py` → 剥容器目录 → `src/crsscope/x.py`；
+    - **wheel**：`crsscope/x.py`（安装态布局）→ 补 `src/` 前缀 → `src/crsscope/x.py`。
+
+    补前缀只在目标路径**确实存在于 tag 树**时进行（不猜测）；两条都不命中就丢弃该项
+    （`*.dist-info/` 之类本来就不在源树里）。
+    """
+    mapping: dict[str, Path] = {}
+    for rel in collect_relative_files(root):
+        if rel in tree_files:
+            mapping.setdefault(rel, root / rel)
+        elif f"src/{rel}" in tree_files:
+            mapping.setdefault(f"src/{rel}", root / rel)
+    return mapping
+
+
 def files_byte_equal(a: Path, b: Path) -> bool:
     if a.stat().st_size != b.stat().st_size:
         return False
@@ -214,26 +249,19 @@ def unpack_archive(archive: Path, dest: Path) -> None:
 def compare_common_files(tree: Path, unpacked_dirs: list[Path]) -> tuple[list[str], int]:
     """附件解包树 × tag 树的**共有文件**逐字节比较。
 
-    返回 `(不一致的相对路径, 共有文件数)`。共有 = 各附件解包后与 tag 树**同相对路径**
-    的文件；附件缺 .git / tests / data、树缺 dist 附件——两侧各自多出来的不算差异。
+    返回 `(不一致的相对路径, 共有文件数)`。共有 = 各附件解包树按 `_asset_map` 归一化到
+    **tag 树相对路径**后与 tag 树的交集；附件缺 .git / tests / data、树缺 dist 附件——
+    两侧各自多出来的不算差异（这正是"不是 `diff -r` 零差异"的含义）。
     """
     tree_files = collect_relative_files(tree)
-    asset_files: set[str] = set()
+    merged: dict[str, Path] = {}
     for unpacked in unpacked_dirs:
-        asset_files |= collect_relative_files(unpacked)
-    common = sorted(tree_files & asset_files)
-    mismatches = [
-        rel for rel in common if not files_byte_equal(tree / rel, _locate(unpacked_dirs, rel))
-    ]
+        for root in _candidate_roots(unpacked, tree_files):
+            for rel, path in _asset_map(root, tree_files).items():
+                merged.setdefault(rel, path)
+    common = sorted(merged)
+    mismatches = [rel for rel in common if not files_byte_equal(tree / rel, merged[rel])]
     return mismatches, len(common)
-
-
-def _locate(unpacked_dirs: list[Path], rel: str) -> Path:
-    for unpacked in unpacked_dirs:
-        candidate = unpacked / rel
-        if candidate.is_file():
-            return candidate
-    raise GateFailure(f"共有文件在附件侧消失: {rel}")
 
 
 # ── 各档判据 ──────────────────────────────────────────────────────────
@@ -316,9 +344,23 @@ def dist_checks(gate: Gate, root: Path, dist: Path, *, required: bool) -> None:
         gate.add("REL.SUMS", False, str(exc))
 
 
-def pre_tag_checks(gate: Gate, root: Path, dist: Path) -> None:
-    """--pre-tag：零网络。唯一读 git 的事实是"tag 还未创建"；产物在此档必须齐备。"""
+def pre_tag_checks(gate: Gate, root: Path, dist: Path, tag: str | None = None) -> None:
+    """--pre-tag：零网络。唯一读 git 的事实是"**本次要打的这个 tag** 还未创建"。
+
+    首版判据写的是"仓库里没有任何 tag"——发布过一次之后，任何后续版本都永远过不了这一档，
+    判据自己把自己判死（第二版实测发现）。正确的前置事实是"目标 tag 名尚不存在"；
+    缺省目标名按版本号推 `v<version>`，也可用 `--tag` 显式给。
+    """
     static_checks(gate, root)
+
+    target = tag
+    if target is None:
+        try:
+            target = f"v{read_version(root)}"
+        except GateFailure:
+            target = None
+    if target is not None:
+        validate_tag(target)
 
     proc = subprocess.run(
         ["git", "-C", str(root), "tag", "--list"],
@@ -330,14 +372,17 @@ def pre_tag_checks(gate: Gate, root: Path, dist: Path) -> None:
     if proc.returncode != 0:
         gate.add("REL.TAG_ABSENT", False, f"git tag --list 失败: {(proc.stderr or '').strip()[:200]}")
     else:
-        tags = [ln for ln in proc.stdout.splitlines() if ln.strip()]
-        gate.add(
-            "REL.TAG_ABSENT",
-            not tags,
-            "tag 尚未创建（前置事实成立）"
-            if not tags
-            else f"已存在 {len(tags)} 个 tag: {tags[:5]}…——本档只用于打 tag 之前",
-        )
+        existing = {ln.strip() for ln in proc.stdout.splitlines() if ln.strip()}
+        if target is None:
+            gate.add("REL.TAG_ABSENT", False, "推不出目标 tag 名（版本号读不到）")
+        else:
+            gate.add(
+                "REL.TAG_ABSENT",
+                target not in existing,
+                f"目标 tag {target} 尚未创建（前置事实成立）"
+                if target not in existing
+                else f"目标 tag {target} 已存在——本档只用于打 tag 之前（已存在 {len(existing)} 个 tag）",
+            )
 
     dist_checks(gate, root, dist, required=True)
 
@@ -507,7 +552,7 @@ def main(argv: list[str] | None = None) -> int:
     gate = Gate()
     try:
         if args.pre_tag:
-            pre_tag_checks(gate, root, dist)
+            pre_tag_checks(gate, root, dist, args.tag)
         elif args.online:
             online_checks(gate, root, args.tag, dist)
         else:

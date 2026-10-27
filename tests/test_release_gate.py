@@ -180,6 +180,60 @@ def test_zip_member_traversal_is_rejected(tmp_path: Path) -> None:
     assert not (tmp_path / "evil.py").exists()
 
 
+def test_wheel_layout_is_normalised_to_source_paths(tmp_path: Path) -> None:
+    """wheel 是**安装态布局**（`crsscope/x.py`），必须归一化到源树 `src/crsscope/x.py`。
+
+    实测教训：不归一化时共有文件恒为 0，判据报"0 个（下限 5）"——门在真发布时变红，
+    但原因不是产物坏了，而是判据没读懂归档布局。
+    """
+    tree = tmp_path / "tree"
+    (tree / "src/crsscope").mkdir(parents=True)
+    (tree / "pyproject.toml").write_text("[project]\n", encoding="utf-8")
+    body = '__version__ = "0.1.0"\n'
+    (tree / "src/crsscope/__init__.py").write_text(body, encoding="utf-8")
+
+    wheel = tmp_path / "unpacked"
+    (wheel / "crsscope").mkdir(parents=True)
+    (wheel / "crsscope/__init__.py").write_text(body, encoding="utf-8")
+    (wheel / "crsscope-0.1.0.dist-info").mkdir()
+    (wheel / "crsscope-0.1.0.dist-info/METADATA").write_text("m\n", encoding="utf-8")
+
+    mismatches, count = cr.compare_common_files(tree, [wheel])
+    assert mismatches == []
+    assert count == 1  # 只有 src/crsscope/__init__.py 是共有文件；dist-info 不在源树
+
+
+def test_sdist_container_directory_is_stripped(tmp_path: Path) -> None:
+    """sdist 解包出唯一顶层目录 `crsscope-0.1.0/`；判据必须剥掉它再比。"""
+    tree = tmp_path / "tree"
+    (tree / "src/crsscope").mkdir(parents=True)
+    body = "x = 1\n"
+    (tree / "src/crsscope/cli.py").write_text(body, encoding="utf-8")
+
+    sdist = tmp_path / "sdist"
+    (sdist / "crsscope-0.1.0/src/crsscope").mkdir(parents=True)
+    (sdist / "crsscope-0.1.0/src/crsscope/cli.py").write_text(body, encoding="utf-8")
+
+    mismatches, count = cr.compare_common_files(tree, [sdist])
+    assert mismatches == []
+    assert count == 1
+
+
+def test_normalised_common_file_mismatch_is_still_caught(tmp_path: Path) -> None:
+    """归一化不能把判据变松：布局对上之后，字节不同仍必须红。"""
+    tree = tmp_path / "tree"
+    (tree / "src/crsscope").mkdir(parents=True)
+    (tree / "src/crsscope/cli.py").write_text("x = 1\n", encoding="utf-8")
+
+    wheel = tmp_path / "unpacked"
+    (wheel / "crsscope").mkdir(parents=True)
+    (wheel / "crsscope/cli.py").write_text("x = 2\n", encoding="utf-8")
+
+    mismatches, count = cr.compare_common_files(tree, [wheel])
+    assert count == 1
+    assert mismatches == ["src/crsscope/cli.py"]
+
+
 # ── 三、tag 名白名单 ──────────────────────────────────────────────────
 
 
@@ -219,8 +273,12 @@ def test_pre_tag_red_without_dist_then_green_with_dist(tmp_path: Path) -> None:
     assert cr.main(["--pre-tag", "--root", str(root)]) == 0  # 齐备 + 无 tag → 绿
 
 
-def test_pre_tag_must_go_red_once_tag_exists(tmp_path: Path) -> None:
-    """tag 推送后再跑 --pre-tag 必红：它守的是"tag 还未创建"这一前置事实。"""
+def test_pre_tag_must_go_red_once_target_tag_exists(tmp_path: Path) -> None:
+    """目标 tag 建好后 `--pre-tag` 必红：它守的是"这次要打的 tag 还未创建"。
+
+    **判据不能写成"仓库里一个 tag 都没有"**：发布过一次之后，任何后续版本都永远过不了这一档，
+    判据会自己把自己判死（v0.1.1 实测发现）。
+    """
     root = _skeleton(tmp_path)
     _git_init_commit(root)
     _fake_dist(root)
@@ -230,7 +288,23 @@ def test_pre_tag_must_go_red_once_tag_exists(tmp_path: Path) -> None:
         check=True,
         capture_output=True,
     )
+    # v0.1.0 已存在，但当前版本是 0.1.0 → 目标 tag 就是 v0.1.0 → 必红
     assert cr.main(["--pre-tag", "--root", str(root)]) == 1
+
+
+def test_pre_tag_green_for_a_new_version_even_when_older_tags_exist(tmp_path: Path) -> None:
+    """打过 v0.1.0 之后，为**新版本**（0.2.0）跑 `--pre-tag` 必须能绿。"""
+    root = _skeleton(tmp_path)
+    (root / "src/crsscope/__init__.py").write_text('__version__ = "0.2.0"\n', encoding="utf-8")
+    _git_init_commit(root)
+    subprocess.run(
+        ["git", "-C", str(root), "tag", "-a", "v0.1.0", "-m", "first"], check=True, capture_output=True
+    )
+    subprocess.run(["git", "-C", str(root), "add", "-A"], check=True, capture_output=True)
+    _fake_dist(root, version="0.2.0")
+    assert cr.main(["--pre-tag", "--root", str(root)]) == 0
+    # 显式 --tag 指向一个已存在的 tag → 红
+    assert cr.main(["--pre-tag", "--tag", "v0.1.0", "--root", str(root)]) == 1
 
 
 def test_sums_mismatch_makes_pre_tag_red(tmp_path: Path) -> None:
