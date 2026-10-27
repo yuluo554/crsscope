@@ -1,0 +1,98 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ---- 虚拟环境 ----
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# ---- 测试与覆盖率 ----
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+
+# ---- 打包与压缩（Release 产物本地留副本另存，不入仓）----
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# ---- 本项目：真实地理数据一律不入仓 ----
+# 语料由 data/fixtures/**/gen.py 程序化构造（金标为 .json），真实文件只本地使用。
+# 典型 .geojson / .gpx 普遍以 UTF-8 BOM 或 CRLF 落盘，入库会让"双跑逐字节一致"变成环境问题。
+*.geojson
+*.jsonl.geojson
+*.gpx
+*.kml
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.tif
+*.tiff
+*.png
+*.jpg
+*.jpeg
+
+# ---- 生成中间产物（只入仓 gen.py 与 expect.json）----
+fixtures/out/
+data/fixtures/*/out/
+data/mask/out/
+
+# ---- 外置掩膜 / 用户数据（本地提供，不入仓）----
+mask/
+_private/
+samples/
+*.log
+*.csv
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 环境变量 ----
+.env
+.env.*
+
+# ---- 发布附件本地副本（不入仓）----
+dist-release/
+
+# ---- 迭代交接物（诊断/执行留档，不入仓）----
+update/
+.tmp/
