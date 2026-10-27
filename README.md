@@ -10,10 +10,11 @@ pip install -e ".[dev]"
 crsscope --help
 ```
 
-当前版本 `0.1.0`。**部分判定已落位**：`crsscope decl`（声明-内容一致性）、
-`crsscope detect`（偏移检测与残差）与 `crsscope xdiff`（跨实现差分）可用；
-其余两个子命令的参数面与契约已定，调用时以退出码 3（环境不满足）报 `not implemented`。
-进度见 [`plan/05-里程碑与发布.md`](plan/05-里程碑与发布.md)。
+当前版本 `0.1.0`。**五个判定子命令全部可用**：`crsscope decl`（声明-内容一致性）、
+`crsscope detect`（偏移检测与残差）、`crsscope xdiff`（跨实现差分）、
+`crsscope geojson`（RFC 7946 结构与声明审计）、`crsscope tiles`（瓦片轴序 / 投影一致性）。
+`crsscope report`（多份报告汇总与门禁）的参数面与契约已定，调用时以退出码 3（环境不满足）报
+`not implemented`。进度见 [`plan/05-里程碑与发布.md`](plan/05-里程碑与发布.md)。
 
 ---
 
@@ -67,17 +68,21 @@ crsscope report report.json --fail-on conflict,axis
 逗号分隔；**缺省时 `conflict` / `error` 即命中**，给了该参数就收窄为只认点名的类别）、
 `--allow-undecidable`（存在 `undecidable` 时仍 exit 0）。
 
-### 最小复现（`decl` / `detect` 已可用，语料为程序化生成）
+### 最小复现（五个子命令，语料为程序化生成）
 
 ```bash
 py -3.12 data/fixtures/declared_lie/gen.py --out data/fixtures/declared_lie
 py -3.12 data/fixtures/swapped_axis/gen.py --out data/fixtures/swapped_axis
 py -3.12 data/fixtures/water_track/gen.py --out data/fixtures/water_track
 py -3.12 data/fixtures/boundary_divergence/gen.py --out data/fixtures/boundary_divergence
+py -3.12 data/fixtures/geojson_struct/gen.py --out data/fixtures/geojson_struct
+py -3.12 data/fixtures/tile_flip/gen.py --out data/fixtures/tile_flip
 crsscope decl data/fixtures/declared_lie/out/declared_lie.geojson --declared-crs 4326 --allow-undecidable --fail-on magnitude
 crsscope decl data/fixtures/swapped_axis/out/swapped_axis.geojson --declared-crs 4326 --fail-on axis
 crsscope detect data/fixtures/water_track/out/water_track.gpx --mask data/fixtures/water_track/out/water_track_mask.json
 crsscope xdiff data/fixtures/boundary_divergence/out/boundary_divergence.geojson --target gcj02
+crsscope geojson data/fixtures/geojson_struct/out/case-001_ring_cw.geojson --strict-ring
+crsscope tiles data/fixtures/tile_flip/out/tile_flip.json
 ```
 
 - **`declared_lie`**：`crs` 成员声明 4326、坐标却是 3857 米域 → `magnitude` 项 `conflict`，
@@ -94,9 +99,18 @@ crsscope xdiff data/fixtures/boundary_divergence/out/boundary_divergence.geojson
   纬度 `2.0 < 3.86` → 两库给出**相反**结论（`boundary_table.agree: false`，进 `jumps`）；
   `(112.0°E, 5.0°N)` / `(112.0°E, 60.0°N)` 两库一致。`pairwise` 给两库的两两差分
   （`median_m` / `max_m` / `p95_m`，`max_m` 附该点坐标）；迭代不收敛的点如实报 `not_converged`。
+- **`geojson_struct`**：九份用例覆盖七项检查。`case-001` 外环顺时针违反 **R1**，但按 **R2**
+  （parsers SHOULD NOT reject）默认只记 **warning**——裸跑 **exit 0**，`--strict-ring` 才 **exit 1**；
+  跨 180° bbox（`[177,-20,-178,-16]`）与 `geometry: null` 都只出 **info**、exit 0；
+  `crs` 成员措辞固定为 "no longer used"；12 位小数触发 `precision` warning；
+  坐标对只有 1 个元素 → 逐条 `structure` 错误 → **exit 4**（失败路径不落报告）。
+  环方向 / 坐标精度 / `crs` 三项正是 `check-geojson` README 明示不查的。
+- **`tile_flip`**：四组纯 `z/x/y` 编号，不含任何地物、**不需要底图**。
+  `z=5` 下 `y=3` 与 `y=28`（`2^5-1-3`）指向同一 bbox → `axis_flip`（混用 XYZ 与 TMS）；
+  `z=3, y=9` 越出 `[0,7]` → **单点即判** error；跨日界线的 `x` 环绕（`x=0` 与 `x=3` 并存）
+  缺 `wrap: true` → `wrap` conflict。不做渲染 / 切片 / 图片。
 
-> `decl` / `detect` / `xdiff` 之外的两个子命令当前会以 **exit 3 + `not implemented`** 返回：
-> 参数面已定、判定逻辑待 M5。
+> `crsscope report` 当前会以 **exit 3 + `not implemented`** 返回：参数面已定、汇总与门禁待 M6。
 > 这是有意设计——未实现的命令**不许**以 0 退出，否则 CI 会把"没跑"读成"跑过且没问题"。
 
 

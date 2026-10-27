@@ -62,7 +62,8 @@ jobs:
         run: |
           set -uo pipefail
           rc=0
-          python -m crsscope tiles nonexistent.json || rc=$?
+          # 只剩 report 未实现（M6）；geojson / tiles 已在 M5 落位，不能再拿它们当靶子。
+          python -m crsscope report nonexistent.json || rc=$?
           if [ "$rc" -ne 3 ]; then
             echo "expected exit 3 for unimplemented command, got $rc"
             exit 1

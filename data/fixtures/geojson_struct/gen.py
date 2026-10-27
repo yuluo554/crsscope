@@ -74,11 +74,16 @@ def shoelace_sign(ring: list[list[float]]) -> int:
     return 0
 
 
-def _feature(fid: str, geometry: object, properties: object = None) -> dict:
+#: 与 `None` 区分开：`properties=None` 是**合法的 JSON null**（RFC 7946 §3.2 / case-005），
+#: 不能被"省略参数就用默认 dict"的逻辑吞掉（2026-10-27 M5 实测修正）。
+_UNSET = object()
+
+
+def _feature(fid: str, geometry: object, properties: object = _UNSET) -> dict:
     return {
         "type": "Feature",
         "id": fid,
-        "properties": {"id": fid} if properties is None else properties,
+        "properties": {"id": fid} if properties is _UNSET else properties,
         "geometry": geometry,
     }
 

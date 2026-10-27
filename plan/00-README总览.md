@@ -6,7 +6,7 @@
 > - **交付形态**：**纯本地 Python CLI**（可进 CI；**不做地图渲染、不联网**）。唯一形态，不设备选。
 > - **定位宣言**（原文照录）："所有头部库都在**悄悄修**：geojsonhint 已归档、check-geojson 明示不查环方向且忽略 `crs`、gcoord/coordtransform 只转换不判定、PROJ 里 GCJ-02 零命中、GDAL 的 RFC7946 默认 NO、gpxpy 把异常删掉不报。**'判定 + 残差 + 问责'这一层无人占位。** 本工具回答：这批坐标是哪个坐标系、会不会整体偏几百米、有没有混用、残差多少。"
 > - **检索窗口**：代理实际检索窗口 **2026-10-27T10:56Z–11:30Z**（`wikipedia.org` / `wiki.openstreetmap.org` 443 超时、github.com 直连被重置，均如实标注；`rfc-editor.org` 与 `epsg.io` 可直连 ✅）
-> - **状态**：**M2 声明-内容一致性 + M3 GCJ 检测与残差 + M4 跨工具差分已完成**（2026-10-27）：`crsscope decl` 五项判据（量级 / 轴序 / 单位 / 混用 / 范围）、`crsscope detect` 六环节（逆变换 / 覆盖检查 / 三路评分 / 排序置信 / 残差三段 / 边界画像）、`crsscope xdiff` 三实现差分（两两米级差异 / 两库边界结论表 / 跳变点 / `not_converged` 如实报出）全部落位；D2 类水域轨迹可复现、边界外不硬判、两类边界分歧均可复现；M1 数据先行（七份 fixture + 离线掩膜）已在位。**其余两个判定子命令尚未实现**（里程碑 M5 待开工，一律 exit 3 + `not implemented`）——进度以 `plan/05` 状态表为准。
+> - **状态**：**M2 声明-内容一致性 + M3 GCJ 检测与残差 + M4 跨工具差分 + M5 GeoJSON 结构 / 瓦片投影已完成**（2026-10-27）：`crsscope decl` 五项判据（量级 / 轴序 / 单位 / 混用 / 范围）、`detect` 六环节（逆变换 / 覆盖检查 / 三路评分 / 排序置信 / 残差三段 / 边界画像）、`xdiff` 三实现差分（两两米级差异 / 两库边界结论表 / 跳变点 / `not_converged` 如实报出）、`geojson` 七项结构与声明审计（含 check-geojson 明示不查的环方向 / 精度 / `crs` 三项；R1+R2 成对分级）、`tiles` 五项轴序/投影检查（`y` 轴翻转静态检出、`y` 越界单点即判、`zoom_bbox`、`wrap`、3857/4326 混用）全部落位；D2 类水域轨迹可复现、边界外不硬判、两类边界分歧均可复现；M1 数据先行（七份 fixture + 离线掩膜）已在位。**只剩 `report` 未实现**（里程碑 M6，exit 3 + `not implemented`）——进度以 `plan/05` 状态表为准。
 
 ---
 
@@ -26,7 +26,7 @@
 | `AGENTS.md` | 方法论锚点：强制布局清单 + 门命令 + 新对话第一动作 | ✅ v1 |
 | `tools/check-sprint-layout.py` | 布局门（零依赖，10 条判据） | ✅ v1 |
 | `tools/mutate-layout-gate.py` | 门的变异验证（每组必须变红） | ✅ v1 |
-| `plan/HANDOFF-*.md` | 里程碑交接单 | ✅ M1 / M2 / M3 / M4 / M5 已出（`plan/HANDOFF-M1.md` ～ `plan/HANDOFF-M5.md`） |
+| `plan/HANDOFF-*.md` | 里程碑交接单 | ✅ M1 / M2 / M3 / M4 / M5 / M6 已出（`plan/HANDOFF-M1.md` ～ `plan/HANDOFF-M6.md`） |
 | `plan/RELEASE-M6.md` | 发布留档（tag 时点 / tag 后追加两栏） | ⬜ 待建（M6） |
 
 > 状态列随里程碑同步翻转；不得一处标 ✅ 而另一处标 ⬜。
@@ -52,6 +52,7 @@
 | 2026-10-27 | **⑩ 品牌隔离与时区题切割** | 本系列已有一题做**时区/时间语义**；本题只做**空间**语义。时间戳只作从属输入（"缺时间戳 → 速度无法判定 → 落水启发式降级"）。文档/代码/提交信息**不得提名任何其他项目**，不引用其结论、不复用其代码。 |
 | 2026-10-27 | **⑪【§4.9 细化】"命中"的定义写死，灰区优先于命中** | 里程碑 M2 落地时发现 §4.9 的 `1` 行（"`--fail-on` 指定类别出现"）与 `0` 行（"无 `--fail-on` 命中项"）在**裸命令**（不给 `--fail-on`）下的语义互斥：按 0 行字面读法，一份明显 `conflict` 的数据会以 0 退出，与 README 三条设计纪律的"判定而非放过"相反。定为：**`conflict` / `error` 级发现默认即命中 → `1`；`--fail-on` 给定时收窄为只认点名的类别**（类别名可匹配 `status`/`reason`/`check`）。同时写死**灰区优先**：`undecidable` 一出现即 `5`（除非 `--allow-undecidable`），不因同一结果集另有 `conflict` 而被吞掉（依据 = README 纪律 2"灰区一律输出 undecidable 并置退出码 5"）。`warning` 默认不算命中，必须 `--strict-ring` / `--fail-on` 显式点名——否则 R1 环方向违规（§4.6 默认 warning）会把历史数据判成失败，违反"分级而非拒绝"。落点：`data/README.md` §4.9 定义块 + `errors.outcome_code`，守门 = `tests/test_decl.py::test_outcome_code_default_states` / `test_fail_on_narrows_the_hit_set`。 |
 | 2026-10-27 | **⑫【M4 落地细化】`xdiff` 的差分方向、适用实现与 `not_converged` 处置** | 三处口径在落地时写死，理由都来自"不编造差分"这条纪律：①**方向**——输入坐标被读作 `--target` 指定的坐标系，每个实现把它转成 **WGS84**（三者唯一可比的公共参照系），差分在 WGS84 输出之间做；②**适用实现**——三个实现覆盖的坐标系不同（§1.5），`gcj02`/`bd09` 只用两库（`coordTransform_py` 开区间 / `gcoord` 闭区间），`webmercator` 只用 `gcoord`/`proj4js`，`wgs84` 三实现恒等差分 0；把不适用者塞进来只会造出**虚假差分**；③**`not_converged` 处置**——gcoord 定点迭代在个别点（闭区间内、开区间外的极端坐标，如 `(72.05, 0.83)`）超上限不收敛，`xdiff` 把它归为 `undecidable`（`reason: not_converged`）**而非** `conflict`：判不出来 ≠ 判定命中，且**不得**静默返回一个"看起来对"的值（题面 §M3 纪律）。落点：`src/crsscope/xdiff.py`，守门 = `tests/test_xdiff.py`。 |
+| 2026-10-27 | **⑬【M5 落地细化】GeoJSON 分级、结构错误出口与 `axis_flip` 的可证条件** | 四处口径在落地时写死，理由都是"判据必须可被变异咬住、不得靠文案充数"：①**`ring_order` 的级别由 R2 推导**——`_ring_order_status()` 读 `RFC_R2` 里的容忍语义标记（`SHOULD NOT reject`）：在 → `warning`，不在 → `error`；`--strict-ring` 是另一条显式升级路径。删掉 R2 分支，`tests/test_geojson.py::test_ring_level_is_derived_from_r2` 立刻红。②**结构性问题不能靠 `error` 状态折算退出码**——`errors.outcome_code` 把 `error` 归为"命中 → 1"，而 §4.9 要求非法 JSON / 坐标对非数值 / 结构破碎一律 `4`。故 `geojson.run()` 先逐条收集 `structure/error`（`audit()` 可见），再整体抛 `InvalidInput`（失败路径零副作用）。③**`axis_flip` 的"同一 bbox"必须可证**——只凭同 `z`/`x` 下 `y` 与 `2^z-1-y` 并存会误伤相邻两行；判据要求组级/单枚 bbox 相同，**或** `scheme` 明写 `xyz`/`tms`。fixture 的 `bbox` 是"两枚指向同一 bbox"的声明，不用于反算瓦片号。④**语料缺陷修正**——`geojson_struct/gen.py` 的 `_feature()` 曾把 `properties=None` 吞成默认 dict，使 `case-005` 落盘的 `properties` 不是 `null`（与金标 `properties_is_null: true` 矛盾）；改用哨兵默认值后 `--check` 10/10 逐字节一致。落点：`src/crsscope/geojson.py`、`src/crsscope/tiles.py`，守门 = `tests/test_geojson.py` / `tests/test_tiles.py`。 |
 
 ---
 
@@ -83,13 +84,13 @@
 | 边界框不一致显式警告 | 两库常数 ✅ | `detect` 的 `boundary_profiles` | 73.2°E 样本两 profile 结论必须不同 | ✅ 已交付（里程碑 M3，2026-10-27） |
 | 跨实现两两差分（米） | 本地算法重实现 ✅ | `crsscope xdiff` 的 `pairwise` | 三实现同点对拍，差异量级可解释（`tests/test_xdiff.py`，吃真实语料） | ✅ 已交付（里程碑 M4，2026-10-27） |
 | 两库边界结论表 | 决策 ④ / ⑥ ✅ | `xdiff` 的 `boundary_table` | 73.2°E 分歧 + 2.0°N 分歧 + 5°N 一致（四行逐字段对拍 `boundary_divergence/expect.json`） | ✅ 已交付（里程碑 M4，2026-10-27） |
-| GeoJSON 环方向（R1+R2 成对） | RFC 7946 §3.1.6 ✅ | `crsscope geojson` 的 `ring_order` | 删 R2 → 级别升级 → 测试失败（变异） | ⬜ 待建（里程碑 M5） |
-| `crs` 成员提示（"no longer used"） | RFC 7946 §4 / App. B.1 ✅ | `geojson` 的 `crs_member` | 断言措辞不含 `MUST NOT`；**发布门全仓字符串扫描** | ⬜ 待建（里程碑 M5） |
-| bbox 跨 180° 合法 | RFC 7946 §7.1 + §5.2 斐济例 ✅ | `geojson` 的 `bbox` | 跨日界线样本不得报 error | ⬜ 待建（里程碑 M5） |
-| null geometry / null properties 合法 | RFC 7946 §3.2 ✅ | `geojson` | `geometry: null` 不得报错 | ⬜ 待建（里程碑 M5） |
-| 坐标精度检查 | check-geojson 明示不查 ✅ | `geojson` 的 `precision` | 超出阈值的样本出 warning | ⬜ 待建（里程碑 M5） |
-| 瓦片轴序静态检出 | mercantile 无 `tms` 形参 ✅ | `crsscope tiles` 的 `axis_flip` | 翻转样本静态检出（无需底图） | ⬜ 待建（里程碑 M5） |
-| zoom ↔ bbox / 跨 180° 环绕 | — | `tiles` | 覆盖数与单调性自洽 | ⬜ 待建（里程碑 M5） |
+| GeoJSON 环方向（R1+R2 成对） | RFC 7946 §3.1.6 ✅ | `crsscope geojson` 的 `ring_order` | 删 R2 → 级别升级 → 测试失败（变异） | ✅ 已交付（里程碑 M5，2026-10-27） |
+| `crs` 成员提示（"no longer used"） | RFC 7946 §4 / App. B.1 ✅ | `geojson` 的 `crs_member` | 断言措辞不含 `MUST NOT`；**发布门全仓字符串扫描** | ✅ 已交付（里程碑 M5，2026-10-27） |
+| bbox 跨 180° 合法 | RFC 7946 §7.1 + §5.2 斐济例 ✅ | `geojson` 的 `bbox` | 跨日界线样本不得报 error | ✅ 已交付（里程碑 M5，2026-10-27） |
+| null geometry / null properties 合法 | RFC 7946 §3.2 ✅ | `geojson` | `geometry: null` 不得报错 | ✅ 已交付（里程碑 M5，2026-10-27） |
+| 坐标精度检查 | check-geojson 明示不查 ✅ | `geojson` 的 `precision` | 超出阈值的样本出 warning | ✅ 已交付（里程碑 M5，2026-10-27） |
+| 瓦片轴序静态检出 | mercantile 无 `tms` 形参 ✅ | `crsscope tiles` 的 `axis_flip` | 翻转样本静态检出（无需底图） | ✅ 已交付（里程碑 M5，2026-10-27） |
+| zoom ↔ bbox / 跨 180° 环绕 | — | `tiles` | 覆盖数与单调性自洽 | ✅ 已交付（里程碑 M5，2026-10-27） |
 | 四份语料（四坐标版本 / 写反轴序 / 声明撒谎 / 边界分歧） | 程序化构造 | `data/fixtures/**/gen.py` + `expect.json` | `--check` 重生成逐字节一致 | ✅ 已交付（2026-10-27） |
 | 离线水陆掩膜（≤1°） | 仓库内构造 | `data/mask/` | 分辨率上限声明 + 未知格不计入分母 | ✅ 已交付（2026-10-27） |
 | 零网络 / 零遥测 | — | 全部子命令 | 断网跑通；代码内无 HTTP 客户端 → `tests/test_no_network.py`（AST 扫全仓 `import`） | 🟡 守门已落位；**断网实跑待 M6** |
@@ -112,7 +113,7 @@
 | M2 | **声明一致性**（模块 M1） | "声明 4326 + 量级 1e6" 与 "轴序写反" 两类样本**各自**命中（互不串扰）；可判定样本不足 → `undecidable` | ✅ 已完成（2026-10-27） |
 | M3 | **GCJ 检测与残差**（模块 M2） | D2 类水域轨迹可复现（正确假设把落水率压到近零）；边界外输出 `out_of_coverage`；`residual.kind` 三段齐；`boundary_profiles` 两库结论可不同 | ✅ 已完成（2026-10-27） |
 | M4 | **跨工具差分**（模块 M3） | 73.2°E 与 2.0°N 两类分歧均报出，5°N 报一致；迭代不收敛报 `not_converged`，不静默 | ✅ 已完成（2026-10-27） |
-| M5 | **GeoJSON 结构（模块 M4）+ 瓦片/投影（模块 M5）** | check-geojson 不查的三项都查；R1+R2 成对引用可被变异咬住；`y` 轴翻转静态检出。**瓦片只作为一个检查项，不做渲染/切片** | ⬜ 待开工 |
+| M5 | **GeoJSON 结构（模块 M4）+ 瓦片/投影（模块 M5）** | check-geojson 不查的三项都查；R1+R2 成对引用可被变异咬住；`y` 轴翻转静态检出。**瓦片只作为一个检查项，不做渲染/切片** | ✅ 已完成（2026-10-27） |
 | M6 | 发布 | **git tag + GitHub Release（附产物）+ `plan/RELEASE-M6.md` 发布留档**；干净环境按 README 跑通；断网跑通；发布 GitHub **公开仓库** | ⬜ 待开工 |
 
 **里程碑 → 模块映射**：里程碑 M2 ↔ 模块 M1｜M3 ↔ 模块 M2｜M4 ↔ 模块 M3｜M5 ↔ 模块 M4 + M5｜M1 与 M6 无对应模块（语料 / 发布）。
