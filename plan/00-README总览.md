@@ -6,7 +6,7 @@
 > - **交付形态**：**纯本地 Python CLI**（可进 CI；**不做地图渲染、不联网**）。唯一形态，不设备选。
 > - **定位宣言**（原文照录）："所有头部库都在**悄悄修**：geojsonhint 已归档、check-geojson 明示不查环方向且忽略 `crs`、gcoord/coordtransform 只转换不判定、PROJ 里 GCJ-02 零命中、GDAL 的 RFC7946 默认 NO、gpxpy 把异常删掉不报。**'判定 + 残差 + 问责'这一层无人占位。** 本工具回答：这批坐标是哪个坐标系、会不会整体偏几百米、有没有混用、残差多少。"
 > - **检索窗口**：代理实际检索窗口 **2026-10-27T10:56Z–11:30Z**（`wikipedia.org` / `wiki.openstreetmap.org` 443 超时、github.com 直连被重置，均如实标注；`rfc-editor.org` 与 `epsg.io` 可直连 ✅）
-> - **状态**：**M2 声明-内容一致性已完成**（2026-10-27）：`crsscope decl` 五项判据（量级 / 轴序 / 单位 / 混用 / 范围）全部落位，`swapped_axis` 与 `declared_lie` 两类语料各自命中且互不串扰；M1 数据先行（七份 fixture + 离线掩膜）已在位。**其余四个判定子命令尚未实现**（里程碑 M3–M5 待开工，一律 exit 3 + `not implemented`）——进度以 `plan/05` 状态表为准。
+> - **状态**：**M2 声明-内容一致性 + M3 GCJ 检测与残差已完成**（2026-10-27）：`crsscope decl` 五项判据（量级 / 轴序 / 单位 / 混用 / 范围）、`crsscope detect` 六环节（逆变换 / 覆盖检查 / 三路评分 / 排序置信 / 残差三段 / 边界画像）全部落位，D2 类水域轨迹可复现、边界外不硬判；M1 数据先行（七份 fixture + 离线掩膜）已在位。**其余三个判定子命令尚未实现**（里程碑 M4–M5 待开工，一律 exit 3 + `not implemented`）——进度以 `plan/05` 状态表为准。
 
 ---
 
@@ -26,7 +26,7 @@
 | `AGENTS.md` | 方法论锚点：强制布局清单 + 门命令 + 新对话第一动作 | ✅ v1 |
 | `tools/check-sprint-layout.py` | 布局门（零依赖，10 条判据） | ✅ v1 |
 | `tools/mutate-layout-gate.py` | 门的变异验证（每组必须变红） | ✅ v1 |
-| `plan/HANDOFF-*.md` | 里程碑交接单 | ✅ M1 / M2 / M3 已出（`plan/HANDOFF-M1.md` / `plan/HANDOFF-M2.md` / `plan/HANDOFF-M3.md`） |
+| `plan/HANDOFF-*.md` | 里程碑交接单 | ✅ M1 / M2 / M3 / M4 已出（`plan/HANDOFF-M1.md` / `plan/HANDOFF-M2.md` / `plan/HANDOFF-M3.md` / `plan/HANDOFF-M4.md`） |
 | `plan/RELEASE-M6.md` | 发布留档（tag 时点 / tag 后追加两栏） | ⬜ 待建（M6） |
 
 > 状态列随里程碑同步翻转；不得一处标 ✅ 而另一处标 ⬜。
@@ -77,9 +77,9 @@
 | 承诺项 | 素材来源 | 交付物内可达性 | 核验方式 | 状态 |
 |---|---|---|---|---|
 | 声明-内容一致性判定（量级 / 轴序 / 范围 / 混用） | EPSG 台账（4326 lat 在前、3857 米）✅ | `crsscope decl` | "声明 4326 + 量级 1e6"与"轴序写反"**各自单测**（`tests/test_decl.py`，吃真实语料） | ✅ 已交付（里程碑 M2，2026-10-27） |
-| GCJ-02 / BD-09 偏移检测 + 残差 | 两库源码实质 ✅ | `crsscope detect` 的 `winner`/`confidence`/`offset_m` | D2 类水域轨迹复现；边界外 `out_of_coverage` | ⬜ 待建（里程碑 M3） |
-| 不可消解残差三段声明 | §2.4 三条不确定性 ✅ | `detect` 的 `residual.kind` | 三段文案齐全性断言 | ⬜ 待建（里程碑 M3） |
-| 边界框不一致显式警告 | 两库常数 ✅ | `detect` 的 `boundary_profiles` | 73.2°E 样本两 profile 结论必须不同 | ⬜ 待建（里程碑 M3） |
+| GCJ-02 / BD-09 偏移检测 + 残差 | 两库源码实质 ✅ | `crsscope detect` 的 `winner`/`confidence`/`offset_m` | D2 类水域轨迹复现；边界外 `out_of_coverage` | ✅ 已交付（里程碑 M3，2026-10-27） |
+| 不可消解残差三段声明 | §2.4 三条不确定性 ✅ | `detect` 的 `residual.kind` | 三段文案齐全性断言 | ✅ 已交付（里程碑 M3，2026-10-27） |
+| 边界框不一致显式警告 | 两库常数 ✅ | `detect` 的 `boundary_profiles` | 73.2°E 样本两 profile 结论必须不同 | ✅ 已交付（里程碑 M3，2026-10-27） |
 | 跨实现两两差分（米） | 本地算法重实现 ✅ | `crsscope xdiff` 的 `pairwise` | 三实现同点对拍，差异量级可解释 | ⬜ 待建（里程碑 M4） |
 | 两库边界结论表 | 决策 ④ / ⑥ ✅ | `xdiff` 的 `boundary_table` | 73.2°E 分歧 + 2.0°N 分歧 + 5°N 一致（三行断言） | ⬜ 待建（里程碑 M4） |
 | GeoJSON 环方向（R1+R2 成对） | RFC 7946 §3.1.6 ✅ | `crsscope geojson` 的 `ring_order` | 删 R2 → 级别升级 → 测试失败（变异） | ⬜ 待建（里程碑 M5） |
@@ -109,7 +109,7 @@
 | 出题阶段 | 题面定稿 + 数据台账 + 骨架入库 | `plan/00` + `plan/01` + `data/README.md` + `.gitignore` 齐；事实全部三态标注；`git log -1` 可见首提交 | ✅ 已完成（2026-10-27） |
 | M1 | **数据先行** | 七份语料（`four_crs` / `swapped_axis` / `declared_lie` / `boundary_divergence` / `water_track` / `tile_flip` / `geojson_struct`）全部由 `gen.py` 生成且 `--check` 逐字节一致；`expect.json` 金标回填；**离线掩膜（1°）构建脚本 + 覆盖率自检** | ✅ 已完成（2026-10-27） |
 | M2 | **声明一致性**（模块 M1） | "声明 4326 + 量级 1e6" 与 "轴序写反" 两类样本**各自**命中（互不串扰）；可判定样本不足 → `undecidable` | ✅ 已完成（2026-10-27） |
-| M3 | **GCJ 检测与残差**（模块 M2） | D2 类水域轨迹可复现（正确假设把落水率压到近零）；边界外输出 `out_of_coverage`；`residual.kind` 三段齐；`boundary_profiles` 两库结论可不同 | ⬜ 待开工 |
+| M3 | **GCJ 检测与残差**（模块 M2） | D2 类水域轨迹可复现（正确假设把落水率压到近零）；边界外输出 `out_of_coverage`；`residual.kind` 三段齐；`boundary_profiles` 两库结论可不同 | ✅ 已完成（2026-10-27） |
 | M4 | **跨工具差分**（模块 M3） | 73.2°E 与 2.0°N 两类分歧均报出，5°N 报一致；迭代不收敛报 `not_converged`，不静默 | ⬜ 待开工 |
 | M5 | **GeoJSON 结构（模块 M4）+ 瓦片/投影（模块 M5）** | check-geojson 不查的三项都查；R1+R2 成对引用可被变异咬住；`y` 轴翻转静态检出。**瓦片只作为一个检查项，不做渲染/切片** | ⬜ 待开工 |
 | M6 | 发布 | **git tag + GitHub Release（附产物）+ `plan/RELEASE-M6.md` 发布留档**；干净环境按 README 跑通；断网跑通；发布 GitHub **公开仓库** | ⬜ 待开工 |

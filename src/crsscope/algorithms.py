@@ -56,15 +56,21 @@ def in_china(lon: float, lat: float, profile: str = PROFILE_GCOORD) -> bool:
 
 
 def distance_to_bbox_deg(lon: float, lat: float, bbox: dict) -> float:
-    """到边界框的近似角距（度）；在框内时返回 0，框外返回最近边的距离。
+    """到边界框**矩形边**的近似角距（度）。
+
+    - 框外：到最近边/角的距离（经向与纬向的越界量取欧氏合成）；
+    - 框内：到最近边的距离（**不是** 0——只有恰落在边上才是 0）。
 
     用途只有一处：`detect` 的 `boundary_jump` 边界带标记（§4.2 的 0.05° 阈值）。
+    若框内一律返回 0，"距边界 < 0.05°"会把**所有框内点**都算进边界带，判据就失效了。
     这是"角度空间"的距离，**不是**米——需要米时由调用方经 `geodesy` 换算。
     """
     (lon_lo, lon_hi), (lat_lo, lat_hi) = bbox["lon"], bbox["lat"]
     dlon = max(lon_lo - lon, 0.0, lon - lon_hi)
     dlat = max(lat_lo - lat, 0.0, lat - lat_hi)
-    return math.hypot(dlon, dlat)
+    if dlon > 0.0 or dlat > 0.0:
+        return math.hypot(dlon, dlat)
+    return min(lon - lon_lo, lon_hi - lon, lat - lat_lo, lat_hi - lat)
 
 
 # ── GCJ-02 前向（公开公式，服务 fixture 生成与对照实现）─────────────────

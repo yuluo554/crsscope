@@ -10,8 +10,9 @@ pip install -e ".[dev]"
 crsscope --help
 ```
 
-当前版本 `0.1.0`。**部分判定已落位**：`crsscope decl`（声明-内容一致性）可用；
-其余四个子命令的参数面与契约已定，调用时以退出码 3（环境不满足）报 `not implemented`。
+当前版本 `0.1.0`。**部分判定已落位**：`crsscope decl`（声明-内容一致性）与
+`crsscope detect`（偏移检测与残差）可用；其余三个子命令的参数面与契约已定，
+调用时以退出码 3（环境不满足）报 `not implemented`。
 进度见 [`plan/05-里程碑与发布.md`](plan/05-里程碑与发布.md)。
 
 ---
@@ -55,7 +56,7 @@ crsscope --help
 ```bash
 crsscope --version
 crsscope decl points.geojson --declared-crs 4326
-crsscope detect track.gpx --mask data/mask/out/mask.json
+crsscope detect track.gpx --mask data/mask/out/mask_v1.json
 crsscope xdiff points.csv --target wgs84
 crsscope geojson collection.geojson --strict-ring
 crsscope tiles tiles.csv
@@ -66,13 +67,15 @@ crsscope report report.json --fail-on conflict,axis
 逗号分隔；**缺省时 `conflict` / `error` 即命中**，给了该参数就收窄为只认点名的类别）、
 `--allow-undecidable`（存在 `undecidable` 时仍 exit 0）。
 
-### 最小复现（`decl` 已可用，语料为程序化生成）
+### 最小复现（`decl` / `detect` 已可用，语料为程序化生成）
 
 ```bash
 py -3.12 data/fixtures/declared_lie/gen.py --out data/fixtures/declared_lie
 py -3.12 data/fixtures/swapped_axis/gen.py --out data/fixtures/swapped_axis
+py -3.12 data/fixtures/water_track/gen.py --out data/fixtures/water_track
 crsscope decl data/fixtures/declared_lie/out/declared_lie.geojson --declared-crs 4326 --allow-undecidable --fail-on magnitude
 crsscope decl data/fixtures/swapped_axis/out/swapped_axis.geojson --declared-crs 4326 --fail-on axis
+crsscope detect data/fixtures/water_track/out/water_track.gpx --mask data/fixtures/water_track/out/water_track_mask.json
 ```
 
 - **`declared_lie`**：`crs` 成员声明 4326、坐标却是 3857 米域 → `magnitude` 项 `conflict`，
@@ -80,8 +83,13 @@ crsscope decl data/fixtures/swapped_axis/out/swapped_axis.geojson --declared-crs
   而灰区优先于命中（§4.9）。
 - **`swapped_axis`**：`(lon, lat)` 被写成 `(lat, lon)` → `axis` 项 `conflict`，**exit 1**；
   量级项保持 `consistent`（两类样本互不串扰，`data/README.md` §4.1 末条）。
+- **`water_track`**（D2 场景）：被 GCJ-02 偏移的**陆上**轨迹。直接当 WGS84 会整条落到水面上
+  （落水率 1.0），按 **GCJ02** 假设反解回落水率 **0.0** → `winner: GCJ02`、`confidence: high`；
+  同时固定输出三段不可消解残差。**必须用它自带的 0.0008° 细网格**——默认 1° 网格（≈111 km）
+  跨不过 GCJ-02 的 250–600 m 位移，只能落 `undecidable`（`plan/05` §二之三）。
 
-> `decl` 之外的四个子命令当前会以 **exit 3 + `not implemented`** 返回：参数面已定、判定逻辑待 M3–M5。
+> `decl` / `detect` 之外的三个子命令当前会以 **exit 3 + `not implemented`** 返回：
+> 参数面已定、判定逻辑待 M4–M5。
 > 这是有意设计——未实现的命令**不许**以 0 退出，否则 CI 会把"没跑"读成"跑过且没问题"。
 
 
