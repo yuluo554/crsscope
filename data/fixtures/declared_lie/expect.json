@@ -1,0 +1,107 @@
+{
+  "cases": [
+    {
+      "declared_crs": "4326",
+      "expected": {
+        "axis_decidable": false,
+        "if_3857_then_wgs84": [
+          100.0,
+          35.0
+        ],
+        "magnitude": "conflict",
+        "magnitude_band": "metre",
+        "magnitude_m": 11131949.079327,
+        "reason": "magnitude"
+      },
+      "id": "case-001",
+      "input": [
+        11131949.079327,
+        4163881.144064
+      ],
+      "role": "declared_lie"
+    },
+    {
+      "declared_crs": "4326",
+      "expected": {
+        "axis_decidable": false,
+        "if_3857_then_wgs84": [
+          100.5,
+          35.0
+        ],
+        "magnitude": "conflict",
+        "magnitude_band": "metre",
+        "magnitude_m": 11187608.824724,
+        "reason": "magnitude"
+      },
+      "id": "case-002",
+      "input": [
+        11187608.824724,
+        4163881.144064
+      ],
+      "role": "declared_lie"
+    },
+    {
+      "declared_crs": "4326",
+      "expected": {
+        "axis_decidable": false,
+        "if_3857_then_wgs84": [
+          101.0,
+          35.5
+        ],
+        "magnitude": "conflict",
+        "magnitude_band": "metre",
+        "magnitude_m": 11243268.570121,
+        "reason": "magnitude"
+      },
+      "id": "case-003",
+      "input": [
+        11243268.570121,
+        4232038.462399
+      ],
+      "role": "declared_lie"
+    },
+    {
+      "declared_crs": "4326",
+      "expected": {
+        "axis_decidable": false,
+        "if_3857_then_wgs84": [
+          101.5,
+          35.0
+        ],
+        "magnitude": "conflict",
+        "magnitude_band": "metre",
+        "magnitude_m": 11298928.315517,
+        "reason": "magnitude"
+      },
+      "id": "case-004",
+      "input": [
+        11298928.315517,
+        4163881.144064
+      ],
+      "role": "declared_lie"
+    },
+    {
+      "declared_crs": "4326",
+      "expected": {
+        "axis_decidable": false,
+        "if_3857_then_wgs84": [
+          101.0,
+          34.5
+        ],
+        "magnitude": "conflict",
+        "magnitude_band": "metre",
+        "magnitude_m": 11243268.570121,
+        "reason": "magnitude"
+      },
+      "id": "case-005",
+      "input": [
+        11243268.570121,
+        4096139.040447
+      ],
+      "role": "declared_lie"
+    }
+  ],
+  "fixture": "declared_lie",
+  "generator_version": "1",
+  "notes": "crs 成员声明 4326/CRS84，坐标却是 3857 米域。金标里的 if_3857_then_wgs84 由 math 独立复算（不复用 algorithms.py）。"
+}

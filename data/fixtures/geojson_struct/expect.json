@@ -1,0 +1,114 @@
+{
+  "cases": [
+    {
+      "expected": {
+        "check": "ring_order",
+        "cites_r1": true,
+        "cites_r2": true,
+        "ring_sign": -1,
+        "status": "warning",
+        "status_with_strict_ring": "error"
+      },
+      "file": "out/case-001_ring_cw.geojson",
+      "id": "case-001",
+      "role": "ring_order_violation"
+    },
+    {
+      "expected": {
+        "check": "ring_order",
+        "ring_sign": 1,
+        "status": "consistent"
+      },
+      "file": "out/case-002_ring_ccw.geojson",
+      "id": "case-002",
+      "role": "ring_order_ok"
+    },
+    {
+      "expected": {
+        "check": "ring_order",
+        "exterior_sign": 1,
+        "hole_sign": -1,
+        "status": "consistent"
+      },
+      "file": "out/case-003_polygon_with_hole.geojson",
+      "id": "case-003",
+      "role": "ring_order_ok_with_hole"
+    },
+    {
+      "expected": {
+        "check": "bbox",
+        "is_error": false,
+        "status": "info",
+        "west_greater_than_east": true
+      },
+      "file": "out/case-004_bbox_antimeridian.geojson",
+      "id": "case-004",
+      "role": "bbox_antimeridian"
+    },
+    {
+      "expected": {
+        "checks": [
+          "null_geometry"
+        ],
+        "geometry_is_null": true,
+        "is_error": false,
+        "properties_is_null": true,
+        "status": "info"
+      },
+      "file": "out/case-005_null_geometry.geojson",
+      "id": "case-005",
+      "role": "null_geometry"
+    },
+    {
+      "expected": {
+        "check": "crs_member",
+        "status": "warning",
+        "wording_must_contain": "no longer used",
+        "wording_must_not_be_coercive": true
+      },
+      "file": "out/case-006_crs_member.geojson",
+      "id": "case-006",
+      "role": "crs_member_present"
+    },
+    {
+      "expected": {
+        "check": "precision",
+        "fraction_digits": 12,
+        "status": "warning",
+        "threshold_digits": 9
+      },
+      "file": "out/case-007_precision.geojson",
+      "id": "case-007",
+      "role": "excess_precision"
+    },
+    {
+      "expected": {
+        "check": "nesting",
+        "depth": 2,
+        "is_error": false,
+        "status": "info"
+      },
+      "file": "out/case-008_geometry_collection.geojson",
+      "id": "case-008",
+      "role": "geometry_collection_nested"
+    },
+    {
+      "expected": {
+        "check": "structure",
+        "coordinate_length": 1,
+        "min_length": 2,
+        "status": "error"
+      },
+      "file": "out/case-009_bad_coord.geojson",
+      "id": "case-009",
+      "role": "malformed_coordinate"
+    }
+  ],
+  "fixture": "geojson_struct",
+  "generator_version": "1",
+  "notes": "覆盖 plan/03 §四 的七项检查。环方向由本文件独立实现 Shoelace 判定；case-001 的默认级别是 warning —— 级别由 R2（parsers SHOULD NOT reject）决定，--strict-ring 是唯一升级路径。",
+  "rfc": {
+    "r1": "A linear ring MUST follow the right-hand rule with respect to the area it bounds.",
+    "r2": "For backwards compatibility, parsers SHOULD NOT reject Polygons that do not follow the right-hand rule."
+  }
+}

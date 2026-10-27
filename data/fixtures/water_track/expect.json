@@ -1,0 +1,74 @@
+{
+  "cases": [
+    {
+      "encoding": "gcj02",
+      "expected": {
+        "confidence": "high",
+        "evaluable_points": 31,
+        "hypotheses": {
+          "BD09": {
+            "cell": "water",
+            "coastal": false,
+            "col": 16,
+            "converged": true,
+            "landing": [
+              110.013569331,
+              29.993080323
+            ],
+            "row": 3
+          },
+          "GCJ02": {
+            "cell": "land",
+            "coastal": false,
+            "col": 24,
+            "landing": [
+              110.02,
+              29.9992
+            ],
+            "row": 11
+          },
+          "WGS84": {
+            "cell": "water",
+            "coastal": false,
+            "col": 31,
+            "landing": [
+              110.024925696,
+              29.996655695
+            ],
+            "row": 8
+          }
+        },
+        "water_ratio": {
+          "BD09": 1.0,
+          "GCJ02": 0.0,
+          "WGS84": 1.0
+        },
+        "winner": "GCJ02"
+      },
+      "id": "case-001",
+      "role": "water_track_d2",
+      "track": {
+        "lon_start": 110.02,
+        "lon_step": 0.004,
+        "path": "out/water_track.gpx",
+        "points": 31,
+        "true_lat": 29.9992
+      }
+    }
+  ],
+  "fixture": "water_track",
+  "generator_version": "1",
+  "mask": {
+    "land_rows": [
+      10,
+      11,
+      12
+    ],
+    "n_lat": 18,
+    "n_lon": 200,
+    "path": "out/water_track_mask.json",
+    "resolution_deg": 0.0008,
+    "version": "water-track-v1"
+  },
+  "notes": "真实轨迹在陆地上、以 GCJ-02 写入。掩膜为构造网格（0.0008°，约 89 m）：§4.3 的 1° 是上限，更细合法。陆带 3 格厚使中间行不是海岸带；偏移落点离陆带 ≥ 2 行，否则会被当海岸带排除出分母。"
+}

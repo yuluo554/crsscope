@@ -1,0 +1,113 @@
+{
+  "cases": [
+    {
+      "bd09": [
+        124.51128942,
+        32.003699251
+      ],
+      "expected": {
+        "inverse_converged": true,
+        "inverse_iterations": 3,
+        "inverse_round_trip_m": 0.0,
+        "offset_m": {
+          "gcj02_to_bd09": 881.5,
+          "wgs84_to_bd09": 1141.3,
+          "wgs84_to_gcj02": 493.7
+        }
+      },
+      "gcj02": [
+        124.504712043,
+        31.998065492
+      ],
+      "id": "case-001",
+      "role": "four_representations",
+      "webmercator": [
+        13859276.603763,
+        3763310.627145
+      ],
+      "wgs84": [
+        124.5,
+        32.0
+      ]
+    },
+    {
+      "bd09": [
+        124.611083534,
+        32.103603422
+      ],
+      "expected": {
+        "inverse_converged": true,
+        "inverse_iterations": 3,
+        "inverse_round_trip_m": 0.0,
+        "offset_m": {
+          "gcj02_to_bd09": 889.2,
+          "wgs84_to_bd09": 1118.3,
+          "wgs84_to_gcj02": 487.3
+        }
+      },
+      "gcj02": [
+        124.60451503,
+        32.097860394
+      ],
+      "id": "case-002",
+      "role": "four_representations",
+      "webmercator": [
+        13870408.552842,
+        3776444.350896
+      ],
+      "wgs84": [
+        124.6,
+        32.1
+      ]
+    },
+    {
+      "bd09": [
+        124.711203319,
+        32.204092993
+      ],
+      "expected": {
+        "inverse_converged": true,
+        "inverse_iterations": 3,
+        "inverse_round_trip_m": 0.0,
+        "offset_m": {
+          "gcj02_to_bd09": 913.3,
+          "wgs84_to_bd09": 1148.2,
+          "wgs84_to_gcj02": 496.7
+        }
+      },
+      "gcj02": [
+        124.704712027,
+        32.197986159
+      ],
+      "id": "case-003",
+      "role": "four_representations",
+      "webmercator": [
+        13881540.501921,
+        3789592.461903
+      ],
+      "wgs84": [
+        124.7,
+        32.2
+      ]
+    },
+    {
+      "expected": {
+        "in_china": {
+          "coordTransform_py": false,
+          "gcoord": true
+        },
+        "inverse_converged": false,
+        "inverse_iterations": 100
+      },
+      "gcj02": [
+        72.05,
+        0.83
+      ],
+      "id": "case-004",
+      "role": "not_converged"
+    }
+  ],
+  "fixture": "four_crs",
+  "generator_version": "1",
+  "notes": "四个表示是同一地点的不同写法；位移金标按 data/README.md §4.4 的 haversine 口径。case-004 的金标是 not_converged —— 不收敛是结论的一部分。"
+}

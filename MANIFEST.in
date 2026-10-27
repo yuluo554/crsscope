@@ -8,6 +8,10 @@ recursive-include tests *.py
 recursive-include tools *.py
 recursive-include plan *.md
 recursive-include data *.md *.py *.json
+# 布局门的两条判据（LAYOUT.CI_STEP / LAYOUT.CI_MUTATION）要看 workflow 文件。
+# 不收入 `.github/` 时，真实 sdist 解包树里门必红——而 `tests/test_layout_gate.py` 明确要求
+# "发布包形态：无 .git 的树里门必须照样能跑"（2026-10-27 实测：本轮 sdist 树里 2 项 FAIL）。
+recursive-include .github *.yml *.yaml
 # 掩膜与语料生成物不入包（`data/**/out/` 已由 .gitignore 排除），只入生成脚本与金标。
 prune data/fixtures/*/out
 prune data/mask/out

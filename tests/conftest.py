@@ -1,8 +1,12 @@
 """测试共享夹具与路径常量。
 
 **session 级 autouse 的"补齐缺件"**：语料生成物不入仓（`.gitignore` 封 `*.geojson` 等），
-干净 clone 上跑测试会缺件。本文件在需要时先跑生成器，**不传 `--suite`**，以确保写出的产物与
-入仓版本同内容（否则"跑测试"这个动作会污染入仓文件）。M1 落位前生成器不存在，直接跳过。
+干净 clone 上跑测试会缺件。本文件在缺件时先跑生成器，**不传 `--suite`**，以确保写出的
+产物与入仓版本同内容（否则"跑测试"这个动作会污染入仓文件）。
+
+**判据是"产物目录缺件"，不是"`expect.json` 缺件"**（2026-10-27 修正）：
+`expect.json` 是入仓金标，干净 clone 上**一直都在**。用它当判据会让补齐逻辑永远不触发——
+语料缺、金标在，测试在干净 clone 上必红却看不出原因（这正是 `plan/04` §1.2 那处结构性风险）。
 """
 
 from __future__ import annotations
@@ -17,9 +21,28 @@ SRC_DIR = REPO_ROOT / "src"
 FIXTURES_DIR = REPO_ROOT / "data" / "fixtures"
 MASK_DIR = REPO_ROOT / "data" / "mask"
 
+#: 产物目录名（与 `data/_genlib.OUT_DIR` 一致）。不入仓，缺件时必须现补。
+OUT_DIR = "out"
+
 # 让测试不必先 pip install 就能 import 本包（同时这也是"干净环境"里最容易忘的一步）。
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
+
+
+def _needs_generation(gen: Path) -> bool:
+    """产物目录缺失或为空 → 需要跑生成器。生成器本身不存在则抛错（不静默跳过）。"""
+    out_dir = gen.parent / OUT_DIR
+    if not out_dir.is_dir():
+        return True
+    return not any(p.is_file() for p in out_dir.rglob("*"))
+
+
+def _generators() -> list[Path]:
+    gens = sorted(FIXTURES_DIR.glob("*/gen.py"))
+    mask_gen = MASK_DIR / "gen.py"
+    if mask_gen.is_file():
+        gens.append(mask_gen)
+    return gens
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -29,15 +52,24 @@ def ensure_fixtures() -> None:
         return
     import subprocess
 
-    for gen in sorted(FIXTURES_DIR.glob("*/gen.py")):
-        if (gen.parent / "expect.json").is_file():
+    for gen in _generators():
+        if not _needs_generation(gen):
             continue
         # 不传 --suite：让写出的 manifest 与入仓版本同内容
-        subprocess.run(
+        proc = subprocess.run(
             [sys.executable, str(gen), "--out", str(gen.parent)],
-            check=True,
-            stdout=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
+        if proc.returncode != 0:
+            pytest.exit(
+                f"补齐语料失败：{gen.relative_to(REPO_ROOT)}\n"
+                f"{proc.stdout}\n{proc.stderr}",
+                returncode=1,
+            )
+
 
 
 @pytest.fixture()

@@ -1,0 +1,50 @@
+{
+  "cases": [
+    {
+      "expected": {
+        "axis_flip": true,
+        "flip_formula": "2**z - 1 - y",
+        "flipped_y": 28,
+        "row_span": [
+          0,
+          31
+        ],
+        "same_bbox": true
+      },
+      "id": "case-001",
+      "role": "xyz_vs_tms"
+    },
+    {
+      "expected": {
+        "allowed": [
+          0,
+          7
+        ],
+        "offending_y": 9,
+        "single_point_sufficient": true,
+        "y_range": "error"
+      },
+      "id": "case-002",
+      "role": "y_out_of_range"
+    },
+    {
+      "expected": {
+        "wrap": "ok",
+        "wrap_declared": true
+      },
+      "id": "case-003",
+      "role": "wrap_declared"
+    },
+    {
+      "expected": {
+        "wrap": "conflict",
+        "wrap_declared": false
+      },
+      "id": "case-004",
+      "role": "wrap_missing"
+    }
+  ],
+  "fixture": "tile_flip",
+  "generator_version": "1",
+  "notes": "金标由 2**z - 1 - y 直接算出，不含任何观测值。axis_flip 要求两枚瓦片指向同一 bbox 且互为翻转；y 越界单点即判。"
+}

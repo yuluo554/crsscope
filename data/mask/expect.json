@@ -1,0 +1,103 @@
+{
+  "cases": [
+    {
+      "expected": {
+        "cell": "land",
+        "coastal": false,
+        "col": 200,
+        "row": 110
+      },
+      "id": "case-001",
+      "lat": 25.0,
+      "lon": 20.0
+    },
+    {
+      "expected": {
+        "cell": "land",
+        "coastal": false,
+        "col": 280,
+        "row": 115
+      },
+      "id": "case-002",
+      "lat": 30.0,
+      "lon": 100.0
+    },
+    {
+      "expected": {
+        "cell": "water",
+        "coastal": false,
+        "col": 180,
+        "row": 45
+      },
+      "id": "case-003",
+      "lat": -40.0,
+      "lon": 0.0
+    },
+    {
+      "expected": {
+        "cell": "unknown",
+        "coastal": false,
+        "col": 355,
+        "row": 5
+      },
+      "id": "case-004",
+      "lat": -80.0,
+      "lon": 175.0
+    },
+    {
+      "expected": {
+        "cell": "unknown",
+        "coastal": false,
+        "col": 5,
+        "row": 163
+      },
+      "id": "case-005",
+      "lat": 78.0,
+      "lon": -175.0
+    },
+    {
+      "expected": {
+        "cell": "land",
+        "coastal": true,
+        "col": 240,
+        "row": 85
+      },
+      "id": "case-006",
+      "lat": 0.0,
+      "lon": 60.0
+    }
+  ],
+  "coverage": {
+    "cells_total": 61200,
+    "coastal_cells": 1864,
+    "coastal_ratio": 0.030458,
+    "evaluable_cells": 59086,
+    "land_cells": 13650,
+    "unknown_cells": 250,
+    "unknown_ratio": 0.004085,
+    "water_cells": 47300
+  },
+  "expected": {
+    "has_coastal_cells": true,
+    "has_unknown_cells": true,
+    "max_resolution_deg": 1.0,
+    "required_header_fields": [
+      "mask_version",
+      "mask_max_resolution_deg",
+      "unknown_ratio",
+      "coastal_ratio",
+      "evaluable_points"
+    ]
+  },
+  "fixture": "mask",
+  "generator_version": "v1",
+  "mask": {
+    "lat_min": -85.0,
+    "lon_min": -180.0,
+    "n_lat": 170,
+    "n_lon": 360,
+    "resolution_deg": 1.0,
+    "version": "v1"
+  },
+  "notes": "构造的 1° 陆水网格，非地理真值。cells 按 (lat_idx, lon_idx) 索引，取值 land/water/unknown；unknown 与海岸带不计入落水分母（data/README.md §4.2）。"
+}

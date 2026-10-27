@@ -1,0 +1,121 @@
+{
+  "cases": [
+    {
+      "expected": {
+        "axis": "conflict",
+        "corrected": [
+          112.0,
+          5.0
+        ],
+        "decidable": true,
+        "first_component_within_lon_range": true,
+        "reason": "axis",
+        "second_component_out_of_lat_range": true
+      },
+      "id": "case-001",
+      "input": [
+        5.0,
+        112.0
+      ],
+      "role": "swapped_axis"
+    },
+    {
+      "expected": {
+        "axis": "conflict",
+        "corrected": [
+          112.5,
+          5.5
+        ],
+        "decidable": true,
+        "first_component_within_lon_range": true,
+        "reason": "axis",
+        "second_component_out_of_lat_range": true
+      },
+      "id": "case-002",
+      "input": [
+        5.5,
+        112.5
+      ],
+      "role": "swapped_axis"
+    },
+    {
+      "expected": {
+        "axis": "conflict",
+        "corrected": [
+          113.0,
+          6.0
+        ],
+        "decidable": true,
+        "first_component_within_lon_range": true,
+        "reason": "axis",
+        "second_component_out_of_lat_range": true
+      },
+      "id": "case-003",
+      "input": [
+        6.0,
+        113.0
+      ],
+      "role": "swapped_axis"
+    },
+    {
+      "expected": {
+        "axis": "conflict",
+        "corrected": [
+          113.5,
+          6.5
+        ],
+        "decidable": true,
+        "first_component_within_lon_range": true,
+        "reason": "axis",
+        "second_component_out_of_lat_range": true
+      },
+      "id": "case-004",
+      "input": [
+        6.5,
+        113.5
+      ],
+      "role": "swapped_axis"
+    },
+    {
+      "expected": {
+        "axis": "conflict",
+        "corrected": [
+          114.0,
+          7.0
+        ],
+        "decidable": true,
+        "first_component_within_lon_range": true,
+        "reason": "axis",
+        "second_component_out_of_lat_range": true
+      },
+      "id": "case-005",
+      "input": [
+        7.0,
+        114.0
+      ],
+      "role": "swapped_axis"
+    },
+    {
+      "expected": {
+        "axis": "conflict",
+        "corrected": [
+          114.5,
+          7.5
+        ],
+        "decidable": true,
+        "first_component_within_lon_range": true,
+        "reason": "axis",
+        "second_component_out_of_lat_range": true
+      },
+      "id": "case-006",
+      "input": [
+        7.5,
+        114.5
+      ],
+      "role": "swapped_axis"
+    }
+  ],
+  "fixture": "swapped_axis",
+  "generator_version": "1",
+  "notes": "坐标以 [lat, lon] 写入 [lon, lat] 的位置；金标里的 corrected 是纯交换（可手算复算）。样本数 ≥ 5，满足 data/README.md §4.1 的可判定样本下限。"
+}

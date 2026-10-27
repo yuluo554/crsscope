@@ -1,0 +1,83 @@
+{
+  "cases": [
+    {
+      "agree": false,
+      "coordTransform_py": "outside",
+      "expected": {
+        "boundary_table_row": {
+          "agree": false,
+          "coordTransform_py": "outside",
+          "gcoord": "inside",
+          "lat": 39.5,
+          "lon": 73.2
+        },
+        "jump": true,
+        "role": "longitude_divergence"
+      },
+      "gcoord": "inside",
+      "id": "case-001",
+      "lat": 39.5,
+      "lon": 73.2
+    },
+    {
+      "agree": false,
+      "coordTransform_py": "outside",
+      "expected": {
+        "boundary_table_row": {
+          "agree": false,
+          "coordTransform_py": "outside",
+          "gcoord": "inside",
+          "lat": 2.0,
+          "lon": 112.0
+        },
+        "jump": true,
+        "role": "latitude_divergence"
+      },
+      "gcoord": "inside",
+      "id": "case-002",
+      "lat": 2.0,
+      "lon": 112.0
+    },
+    {
+      "agree": true,
+      "coordTransform_py": "inside",
+      "expected": {
+        "boundary_table_row": {
+          "agree": true,
+          "coordTransform_py": "inside",
+          "gcoord": "inside",
+          "lat": 5.0,
+          "lon": 112.0
+        },
+        "jump": false,
+        "role": "agreement_inside"
+      },
+      "gcoord": "inside",
+      "id": "case-003",
+      "lat": 5.0,
+      "lon": 112.0
+    },
+    {
+      "agree": true,
+      "coordTransform_py": "outside",
+      "expected": {
+        "boundary_table_row": {
+          "agree": true,
+          "coordTransform_py": "outside",
+          "gcoord": "outside",
+          "lat": 60.0,
+          "lon": 112.0
+        },
+        "jump": false,
+        "role": "agreement_outside"
+      },
+      "gcoord": "outside",
+      "id": "case-004",
+      "lat": 60.0,
+      "lon": 112.0
+    }
+  ],
+  "fixture": "boundary_divergence",
+  "generator_version": "1",
+  "notes": "两套边界框常数照录自 data/README.md §1.3，在本文件内独立代入判定，不复用 crsscope.algorithms。5°N 两库都判境内（决策 ⑥），只作一致对照，不构成分歧。"
+}
