@@ -16,7 +16,7 @@
 | 方法论装订 + 布局门（10 判据） | ✅ | `py -3.12 tools/check-sprint-layout.py` → 全绿 |
 | 门变异验证 | ✅ | `py -3.12 tools/mutate-layout-gate.py` → **10/10 符合预期 / 0 SKIP** |
 | **里程碑 M1 数据先行** | ✅ **本轮完成** | 七份 fixture + 掩膜；8 份生成器 `--check` exit 0 逐字节一致 |
-| 测试 | ✅ | `py -3.12 -m pytest` → **146 passed**（骨架 102 + 语料契约 44） |
+| 测试 | ✅ | `py -3.12 -m pytest` → **146 passed**（M2 时点；当前见 `plan/05`）（骨架 102 + 语料契约 44） |
 | CI | ⬜ **待首推验证** | `.github/workflows/ci.yml` 已写，**从未被 GitHub 跑过** |
 | 判定逻辑（模块 M1–M5） | ⬜ 未实现 | 五子命令一律 exit 3 + `not implemented` |
 

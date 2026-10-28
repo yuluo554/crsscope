@@ -14,7 +14,7 @@
 | 门变异验证 | ✅ | `py -3.12 tools/mutate-layout-gate.py` → **10/10 符合预期 / 0 SKIP** |
 | 里程碑 M1 数据先行 | ✅ | 七份 fixture + 掩膜；8 份生成器 `--check` exit 0 逐字节一致 |
 | **里程碑 M2 声明-内容一致性** | ✅ **本轮完成** | `crsscope decl` 五项判据落位；`swapped_axis` / `declared_lie` 各自命中 |
-| 测试 | ✅ | `py -3.12 -m pytest` → **168 passed**（骨架 104 + 语料契约 40 + decl 24） |
+| 测试 | ✅ | `py -3.12 -m pytest` → **168 passed**（M3 时点；当前见 `plan/05`）（骨架 104 + 语料契约 40 + decl 24） |
 | CI | ⬜ **待首推验证** | `.github/workflows/ci.yml` 已写，**从未被 GitHub 跑过** |
 | 判定逻辑（模块 M2–M5 对应里程碑 M3–M5） | ⬜ 未实现 | `detect` / `xdiff` / `geojson` / `tiles` / `report` 一律 exit 3 + `not implemented` |
 

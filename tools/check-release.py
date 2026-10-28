@@ -13,7 +13,9 @@
   附件与 tag 树解包后的**共有文件**逐字节相等——不是 `diff -r` 零差异
   （附件不含 .git / tests / data 等仅归档侧文件；共有交集至少 MIN_COMMON_FILES
   个，交集为空 = 判据空跑 = FAIL）；`SHA256SUMS` 可复核；README 命令面可跑
-  （用 tag 树的 src 起 `--help`，零运行时依赖所以不需要安装）。
+  （用 tag 树的 src 起 `--help`，零运行时依赖所以不需要安装）；**Release 正文点名
+  的产物文件名必须都是当前版本**（`REL.BODY_VERSION`——正文是用户唯一会照抄的地方，
+  写错版本号等于让人敲一条必然失败的 `pip install`）。
 
 退出码：0 全绿 / 1 有 FAIL / 2 用法错误。判据输出与布局门同构：一行一条 PASS/FAIL。
 
@@ -66,6 +68,14 @@ SUMS_NAME = "SHA256SUMS"
 MIN_COMMON_FILES = 5
 
 _TAG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
+
+#: Release 正文里点名产物文件名的形态（`crsscope-0.1.1-py3-none-any.whl` / `crsscope-0.1.1.tar.gz`）。
+#: 只抓 `crsscope-<x.y.z>` 这一段——正文标题里的 `crsscope v0.1.1` 中间是空格，不参与判定。
+#:
+#: 版本后必须紧跟 `-` 或 `.`：**只写 `crsscope-<x.y.z>-` 会漏掉 `.tar.gz` 两处**（实测：
+#: v0.1.1 正文 4 处产物名里 2 处是 wheel、2 处是 sdist，sdist 版本号后跟的是 `.`）。
+#: 判据宁可多抓（加严），不许因为形态写得窄而让 2/4 静默通过。
+BODY_ASSET_RE = re.compile(r"crsscope-(\d+\.\d+\.\d+)(?=[-.])")
 
 
 class GateFailure(Exception):
@@ -398,6 +408,31 @@ def _run_checked(argv: list[str], *, cwd: Path, what: str) -> str:
     return proc.stdout
 
 
+def body_version_verdict(body: str, version: str) -> tuple[bool, str]:
+    """Release **正文**里点名的产物文件名必须都是当前版本。
+
+    这是纯函数（只吃正文文本），`gh` 调用留在 `main()` / `online_checks()` 一侧——单测不联网。
+
+    三条纪律，全部来自本仓 `MIN_COMMON_FILES` 的同款逻辑：
+    - **至少命中 1 处**：0 处 = 判据空跑 = FAIL（正文若改成不带文件名的散文，这条必须红，
+      否则它就成了永远绿的装饰）；
+    - **全部等于当前版本**：命中集合里去掉当前版本后必须为空集；
+    - 判据只认 `crsscope-<x.y.z>-<...>` 这个形态，正文标题里的 `v0.1.1` 不参与（标题用
+      `v` 前缀，产物名不用，形态不同是刻意的区分）。
+    """
+    found = BODY_ASSET_RE.findall(body)
+    if not found:
+        return False, (
+            "Release 正文里 0 处 `crsscope-<x.y.z>-` 形态的产物名——判据空跑"
+            "（正文必须点名安装用的文件名，否则用户无从照抄）"
+        )
+    wrong = sorted({v for v in found if v != version})
+    detail = f"正文点名产物 {len(found)} 处，版本分布 {sorted(set(found))}，当前版本 {version}"
+    if wrong:
+        return False, detail + f"；错版: {wrong}"
+    return True, detail
+
+
 def cli_smoke_checks(gate: Gate, tree: Path) -> None:
     """README 命令面可跑：用 tag 树的 src 直接起 `--help`（零运行时依赖，无需安装）。"""
     env = dict(os.environ)
@@ -463,7 +498,9 @@ def online_checks(gate: Gate, root: Path, tag: str, dist: Path) -> None:
 
         # ③ Release 在场且非草稿，附件齐备
         view = _run_checked(
-            ["gh", "release", "view", tag, "--json", "assets,isDraft"], cwd=root, what="gh release view"
+            ["gh", "release", "view", tag, "--json", "assets,isDraft,body"],
+            cwd=root,
+            what="gh release view",
         )
         info = json.loads(view)
         assets = [a["name"] for a in info.get("assets", [])]
@@ -473,6 +510,31 @@ def online_checks(gate: Gate, root: Path, tag: str, dist: Path) -> None:
             bool(assets) and not draft,
             f"Release {tag}: {len(assets)} 份附件（draft={draft}）: {assets[:6]}",
         )
+
+        # ③b 正文点名的产物名必须都是**该 tag 树**的版本（D1 的回归门）
+        # 这一条与附件无关，所以放在"附件是否齐备"的早退**之前**——正文写错版的
+        # 仓库不该因为附件恰好缺一份就少报一条判据。
+        #
+        # **版本必须取自 tag 树，不能取工作树**（发布 v0.1.2 时实测踩到）：本档的判据
+        # 对象是"那次发布"，工作树版本随时会领先于 tag（改版准备期必然领先）。拿工作树
+        # 版本去比旧 tag 的正文，会让 `--online --tag v0.1.1` 在准备 v0.1.2 时**假红**，
+        # 而这恰恰是本仓"任何时候都能复核历史发布"的能力本身。tag 树读不到版本时才回退。
+        try:
+            body_version = read_version(tree)
+            version_src = f"{tag} 树"
+        except GateFailure:
+            try:
+                body_version = read_version(root)
+                version_src = "工作树（tag 树版本读取失败）"
+            except GateFailure:
+                body_version = ""
+                version_src = ""
+        if not body_version:
+            gate.add("REL.BODY_VERSION", False, "tag 树与工作树都读不到版本，正文判据无从比较")
+        else:
+            ok, detail = body_version_verdict(info.get("body") or "", body_version)
+            gate.add("REL.BODY_VERSION", ok, f"{detail}（版本源: {version_src}）")
+
         if draft or not assets:
             return  # 后续判据依赖已下载的附件，这里已红，不再空转
 

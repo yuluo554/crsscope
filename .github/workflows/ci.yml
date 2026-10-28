@@ -25,9 +25,13 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python-version: ["3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
+      # 2026-10-28 二次迭代：checkout v4→v7、setup-python v5→v7（最新 v7.0.1 / v7.1.0）。
+      # 动机是每条 check-run 都带 `Node.js 20 is deprecated` 注解，且注解掩盖真问题。
+      # 版本升降**本地门看不见**（布局门只断言 ci.yml 里有这两个步骤名，不判 uses 版本），
+      # 所以升完必须真推一次看 CI 四组矩阵绿——见 plan/RELEASE-M7.md §二。
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 

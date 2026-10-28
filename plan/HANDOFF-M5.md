@@ -16,7 +16,7 @@
 | 里程碑 M2 声明-内容一致性 | ✅ | `crsscope decl` 五项判据落位 |
 | 里程碑 M3 GCJ 检测与残差 | ✅ | `crsscope detect` 六环节落位 |
 | **里程碑 M4 跨工具差分** | ✅ **本轮完成** | `crsscope xdiff` 三实现差分落位；两类边界分歧逐字段对拍金标；`not_converged` 如实报出（`undecidable` + exit 5） |
-| 测试 | ✅ | `py -3.12 -m pytest -o addopts=""` → **218 passed**（骨架 168 + detect 23 + xdiff 28） |
+| 测试 | ✅ | `py -3.12 -m pytest -o addopts=""` → **218 passed**（M5 时点；当前见 `plan/05`）（骨架 168 + detect 23 + xdiff 28） |
 | CI | ⬜ **待首推验证** | `.github/workflows/ci.yml` 已写，**从未被 GitHub 跑过** |
 | 判定逻辑（模块 M4–M5 对应里程碑 M5） | ⬜ 未实现 | `geojson` / `tiles` / `report` 一律 exit 3 + `not implemented` |
 

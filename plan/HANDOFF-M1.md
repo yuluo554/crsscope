@@ -14,7 +14,7 @@
 | 方法论装订 | ✅ | `AGENTS.md` + `tools/check-sprint-layout.py`（10 判据）+ `plan/00` 顶部装订行 |
 | 门变异验证 | ✅ | `py -3.12 tools/mutate-layout-gate.py` → **10/10 符合预期 / 0 SKIP** |
 | 可运行骨架 | ✅ | `pip install -e ".[dev]"` 成功；`crsscope --version` → `0.1.0`；6 个子命令 `--help` 全 exit 0 |
-| 测试 | ✅ | `py -3.12 -m pytest` → **102 passed** |
+| 测试 | ✅ | `py -3.12 -m pytest` → **102 passed**（M1 时点；当前见 `plan/05`） |
 | 构建 | ✅ | `python -m build` → `dist/crsscope-0.1.0.tar.gz`（57 条目）+ `.whl` |
 | 双装态 | ✅ | 仓库外两个全新 venv：wheel 装态与 sdist 装态均 `0.1.0` + console script 可跑；wheel 装态加载的非标准库顶层模块 = `[]` |
 | CI | ⬜ **待首推验证** | `.github/workflows/ci.yml` 已写（3.11/3.12 × ubuntu/windows），**从未被 GitHub 跑过** |

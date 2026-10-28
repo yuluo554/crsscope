@@ -10,7 +10,7 @@ pip install -e ".[dev]"
 crsscope --help
 ```
 
-当前版本 `0.1.1`。**六个子命令全部可用**：`crsscope decl`（声明-内容一致性）、
+当前版本 `0.1.2`。**六个子命令全部可用**：`crsscope decl`（声明-内容一致性）、
 `crsscope detect`（偏移检测与残差）、`crsscope xdiff`（跨实现差分）、
 `crsscope geojson`（RFC 7946 结构与声明审计）、`crsscope tiles`（瓦片轴序 / 投影一致性）、
 `crsscope report`（多份报告汇总与门禁）。进度见 [`plan/05-里程碑与发布.md`](plan/05-里程碑与发布.md)。

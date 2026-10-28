@@ -69,6 +69,12 @@ htmlcov/
 fixtures/out/
 data/fixtures/*/out/
 data/mask/out/
+# CLI 的报告落点：`--out-dir` 默认 None ⇒ 落在 cwd（cli.py:30）。README 的 5 条最小复现
+# 直接在仓库根敲，跑完就留两个未跟踪文件（2026-10-28 实测：跑完 git status 出现
+# `?? report.json` `?? report.md`）。带前导斜杠只锚仓库根——裸写会连带命中用户自己的
+# 输出目录（同 `/mask/` 的理由，见下条注释）。
+/report.json
+/report.md
 
 # ---- 外置掩膜 / 用户数据（本地提供，不入仓）----
 # 只锚仓库根的 `mask/`：裸写 `mask/` 会连带命中 `data/mask/`，把入仓的生成器与金标一起吞掉

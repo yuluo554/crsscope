@@ -17,12 +17,12 @@ tag 名 `v0.1.1`；注释式 tag（annotated）。以下事实在打 tag 的**�
 | 项 | 事实 | 复核方式 |
 |---|---|---|
 | 交付面 | 六个子命令全部落位：`decl` / `detect` / `xdiff` / `geojson` / `tiles` / `report` | `crsscope --help`；`tests/test_cli.py` |
-| `report` | 多份 `report.json` 聚合 + 门禁；缺文件 → 3、坏 JSON/缺 `findings` → 4、灰区 → 5 | `tests/test_report.py`（16 项） |
+| `report` | 多份 `report.json` 聚合 + 门禁；缺文件 → 3、坏 JSON/缺 `findings` → 4、灰区 → 5 | `tests/test_report.py`（13 项） |
 | 契约表 | `tests/test_unimplemented_contract.py` 的 `UNIMPLEMENTED` 已清空，并保留显式空表断言 | 该文件 |
-| 发布门 | `tools/check-release.py` 三档在位（离线默认 / `--pre-tag` / `--online`） | `tests/test_release_gate.py`（30 项） |
+| 发布门 | `tools/check-release.py` 三档在位（离线默认 / `--pre-tag` / `--online`） | `tests/test_release_gate.py`（v0.1.1 tag 时点 28 条用例；二次迭代加 `REL.BODY_VERSION` 后 **31** 项，见 §二 2.3） |
 | 发布门归一化 | wheel（安装态 `crsscope/x.py`）与 sdist（`crsscope-<ver>/src/…`）都归一化到源树路径再比 | `test_wheel_layout_is_normalised_to_source_paths` / `test_sdist_container_directory_is_stripped` |
 | 登记清理 | 布局门 `PENDING_TOOLS` 已删 `tools/check-release.py`；`AGENTS.md` §六同步 | `py -3.12 tools/check-sprint-layout.py` |
-| 全量测试 | `321 passed / 2 skipped`（本机 3.12） | `py -3.12 -m pytest -o addopts=""` |
+| 全量测试 | `332 passed / 2 skipped`（本机 3.12；**v0.1.1 tag 时点是 322**，二次迭代新增 10 条守门后为 332，加法见 §二 2.3） | `py -3.12 -m pytest -o addopts=""` |
 | 布局门 | 11 条判据全绿（文档 11 / 交接单 6 / 状态副本 2 / 台账 21 行 / 发布留档 1） | `py -3.12 tools/check-sprint-layout.py` |
 | 门变异 | 10 / 10 全部如期变红，0 SKIP | `py -3.12 tools/mutate-layout-gate.py` |
 | 语料可重建 | 8 份生成器 `--check` 全部 exit 0（逐字节一致） | `data/fixtures/*/gen.py --check` |
@@ -99,6 +99,18 @@ crsscope tiles   data/fixtures/tile_flip/out/tile_flip.json --out-dir /tmp/o
 cmp /tmp/w/report.json /tmp/s/report.json && cmp /tmp/w/report.md /tmp/s/report.md
 ```
 
+### 2.3 二次迭代（2026-10-28）对 `v0.1.1` 的追溯修正
+
+`v0.1.1` 的**附件与 tag 一个字节未动**；以下是发布之后才发现、且可以在不重发的前提下修掉的部分。
+
+| 项 | 事实 |
+|---|---|
+| Release 正文版本号 | §二 2.1 的正文原写 `crsscope-0.1.0-py3-none-any.whl` / `crsscope-0.1.0.tar.gz`（4 处），实际附件是 `0.1.1`——照抄 `pip install` 会 `No such file or directory`。**已用 `gh release edit v0.1.1 --notes-file` 就地改正文**，现 4 处全为 `0.1.1`；附件未动 |
+| 新增判据 `REL.BODY_VERSION` | `--online` 档由 8 条判据变 **9** 条：抓正文里全部 `crsscope-<x.y.z>` 形态的产物名，要求**全部**等于 `read_version(root)` 且**至少命中 1 处**（0 处 = 判据空跑 = FAIL）。守门 3 条（错版红 / 0 处红 / 全对绿）在 `tests/test_release_gate.py` |
+| 判据形态的一处修正 | 最初按"版本后紧跟 `-`"写正则，**实测只命中 2/4 处**（sdist 的 `crsscope-0.1.1.tar.gz` 版本号后是 `.`）。已放宽为"版本后紧跟 `-` 或 `.`"——这是**加严**（多抓不是少抓），不是放宽 |
+| 自述测试数字的口径 | 本表 §一 的 `321` / `16` / `30` 与 `plan/05` / `plan/06` 的 `318` 均为错值；实测 v0.1.1 tag 时点是 **322 条用例**（13 / 28 两个分文件数同实测），二次迭代加 10 条守门后为 **332 passed**（+3 `REL.BODY_VERSION`、+4 `test_python_floor`、+3 `test_reported_counts`）。现已全部按实测改写，并新增 `tests/test_reported_counts.py` 三条自指守门 |
+| 为什么留 `v0.1.1` 不改 tag | 错值在 tag 树与 sdist 里，但改 tag 会让已下载者手上的 sha256 失效；**新版本 `v0.1.2` 承载修正后的树**（见 `plan/RELEASE-M7.md`） |
+
 ---
 
 ## 三、阶段 7 覆盖对账表
@@ -108,7 +120,7 @@ cmp /tmp/w/report.json /tmp/s/report.json && cmp /tmp/w/report.md /tmp/s/report.
 
 | # | M6 出口判据 | 三态 | 证据 / 理由 |
 |---|---|---|---|
-| 1 | `tools/check-release.py` 三档：`--pre-tag` / 离线默认 / `--online` | 实现 | `tests/test_release_gate.py` 28 项；三档各实跑：`--pre-tag` 6 PASS、离线 5 PASS、`--online` 8 PASS |
+| 1 | `tools/check-release.py` 三档：`--pre-tag` / 离线默认 / `--online` | 实现 | `tests/test_release_gate.py` 31 项（v0.1.1 tag 时点是 28 条用例，二次迭代加 3 条 `REL.BODY_VERSION` 守门）；三档各实跑：`--pre-tag` 6 PASS、离线 5 PASS、`--online` **9** PASS（新增 `REL.BODY_VERSION`） |
 | 2 | 干净环境：真下载附件 → 中立目录解包 → 逐条敲 README | 实现 | §二 2.1「真下载复核」+「干净 venv 装下载件」；`sha256sum -c` 两条 OK、`cmp` 三项一致 |
 | 3 | 附件与 `git archive <tag>` 解包树的共有文件逐字节相等（不是 `diff -r` 零差异） | 实现 | `--online --tag v0.1.1` 的 `REL.COMMON_FILES`：共有文件 76 个（下限 5）、不一致 0 个；归一化逻辑由 `test_wheel_layout_is_normalised_to_source_paths` / `test_sdist_container_directory_is_stripped` / `test_normalised_common_file_mismatch_is_still_caught` 守 |
 | 4 | 断网跑通（`docker run --network none` 或用 `--offline` 冒烟） | 实现（`--offline` 冒烟通道） | 本机无 docker（`docker: command not found`，2026-10-27 实测）→ 走 PLAN 允许的第二通道并加强：`sitecustomize` 审计钩子拦截全部 `socket.*`，含阳性探活；`tests/test_offline_runtime.py` 6 项 |
@@ -118,8 +130,9 @@ cmp /tmp/w/report.json /tmp/s/report.json && cmp /tmp/w/report.md /tmp/s/report.
 | 8 | 跨 Python 版本行为（3.11 与 3.12） | 实现（经 CI） | 本机只有 3.12 参与验证；CI 矩阵在 3.11 与 3.12 上各跑全量测试，均 success |
 | 9 | 真实地理掩膜 / 真实 GPS 轨迹回归 | 不适用 | 项目形态决定：首期掩膜是 1° 构造网格（不承诺海岸线准确性）；真实轨迹属隐私红线（脱敏不可验证），永不接受 |
 | 10 | 地图渲染 / 切片 / 图片产出 | 不适用 | 形态唯一：本工具只做判定与证据输出，不做渲染（`plan/01` §边界与非目标） |
+| 11 | Release 正文与附件同版本（二次迭代新增的出口判据） | 实现 | `REL.BODY_VERSION`（`--online` 第 6 条判据）：正文 4 处产物名全为当前版本；守门 3 条在 `tests/test_release_gate.py`；`v0.1.1` 原错版已就地修正，见 §二 2.3 |
 
-**三态统计**：实现 8 行 / 不适用 2 行 / 待首推 0 行（合计 10 行）。
+**三态统计**：实现 9 行 / 不适用 2 行 / 待首推 0 行（合计 11 行）。
 
 ---
 

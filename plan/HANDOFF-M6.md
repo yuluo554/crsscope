@@ -17,7 +17,7 @@
 | 里程碑 M3 GCJ 检测与残差 | ✅ | `crsscope detect` 六环节落位 |
 | 里程碑 M4 跨工具差分 | ✅ | `crsscope xdiff` 三实现差分落位 |
 | **里程碑 M5 GeoJSON + 瓦片** | ✅ **本轮完成** | `crsscope geojson` 七项检查（含 check-geojson 不查的环方向 / 精度 / `crs`）；`crsscope tiles` 五项（`y` 轴翻转静态检出） |
-| 测试 | ✅ | `py -3.12 -m pytest -o addopts=""` → **273 passed**（decl 24 + detect 23 + xdiff 28 + geojson 28 + tiles 28；未实现契约只剩 `report`） |
+| 测试 | ✅ | `py -3.12 -m pytest -o addopts=""` → **273 passed**（M6 时点、`report` 尚未落位；当前见 `plan/05`）（decl 24 + detect 23 + xdiff 28 + geojson 28 + tiles 28；未实现契约只剩 `report`） |
 | CI | ⬜ **待首推验证** | `.github/workflows/ci.yml` 已写，**从未被 GitHub 跑过** |
 | `report` 子命令 | ⬜ 未实现 | `crsscope report` 一律 exit 3 + `not implemented`（`tests/test_unimplemented_contract.py` 里只剩它） |
 | 发布门 `tools/check-release.py` | ⬜ 未实现 | `AGENTS.md` §六 + 布局门 `PENDING_TOOLS` 登记为 **M6 落位** |

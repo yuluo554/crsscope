@@ -1,6 +1,6 @@
 """发布门 `tools/check-release.py` 的守门（HANDOFF-M6 §三B）。
 
-判据分五组，各自可证伪：
+判据分六组，各自可证伪：
 
 1. **SHA256SUMS 复核**：正确清单通过；**篡改一个字节必红**；点名带路径的文件
    （穿越）直接拒绝。
@@ -9,10 +9,14 @@
 3. **tag 名白名单**：`-rf`、含空白/元字符/`..` 的 tag 进不了任何 subprocess。
 4. **三档端到端**：离线档在合成骨架上全绿（不依赖本仓状态）；--pre-tag 档在真
    git 仓库上"tag 前绿 / 打 tag 后必红"（前置事实翻转）；缺产物必红。
-5. **用法**：--online 缺 --tag、双档互斥 → 2。
+5. **Release 正文版本面**（`REL.BODY_VERSION`，D1 的回归门）：正文点名的产物名
+   必须全是当前版本——**错版必红**（阳性对照）、**0 处命中必红**（空跑守卫）、
+   全对才绿。判据是纯函数 `body_version_verdict(body, version)`：吃文本不吃网络，
+   `gh` 调用留在 `online_checks()` 一侧。
+6. **用法**：--online 缺 --tag、双档互斥 → 2。
 
 --online 档的 gh/git 全流程不进单测（要网络与已发布事实）；它的纯核心
-（比较 / 复核 / 解包 / 校验）由上面各组覆盖，全流程在真实发布时跑一遍并留档。
+（比较 / 复核 / 解包 / 校验 / 正文版本面）由上面各组覆盖，全流程在真实发布时跑一遍并留档。
 """
 
 from __future__ import annotations
@@ -320,7 +324,54 @@ def test_sums_mismatch_makes_pre_tag_red(tmp_path: Path) -> None:
     assert cr.main(["--pre-tag", "--root", str(root)]) == 1
 
 
-# ── 五、用法 ──────────────────────────────────────────────────────────
+# ── 五、Release 正文版本面（REL.BODY_VERSION） ────────────────────────
+#
+# 背景（D1）：`v0.1.1` 的 Release 正文照抄了上一版的「安装」与「附件」两节，
+# 写的是 `crsscope-0.1.0-*.whl`，而附件是 `0.1.1`——照抄那条 `pip install`
+# 直接 `No such file or directory`。正文是用户唯一会照抄的地方（从 Releases 页
+# 进来的人只看正文），而此前 8 条判据里没有一条读 `body`。
+#
+# 判据是纯函数：吃正文文本 + 当前版本，不碰 `gh`（单测不能联网）。
+
+
+def test_body_version_catches_wrong_version() -> None:
+    """阳性对照：正文点名 0.1.0 而当前是 0.1.1 → 必红（D1 的原始形态）。"""
+    body = (
+        "## crsscope v0.1.1\n\n"
+        "```bash\n"
+        "pip install crsscope-0.1.0-py3-none-any.whl       # wheel\n"
+        "pip install crsscope-0.1.0.tar.gz                 # sdist\n"
+        "```\n"
+    )
+    ok, detail = cr.body_version_verdict(body, "0.1.1")
+    assert ok is False
+    assert "0.1.0" in detail  # 错版必须被点名报出
+
+
+def test_body_version_zero_hits_is_explicit_failure() -> None:
+    """空跑守卫：正文里一处 `crsscope-<x.y.z>-` 都没有 → FAIL，不许静默全绿。"""
+    body = "## crsscope v0.1.1\n\n安装方式见 README。\n"
+    ok, detail = cr.body_version_verdict(body, "0.1.1")
+    assert ok is False
+    assert "0 处" in detail
+
+
+def test_body_version_all_matching_passes() -> None:
+    """全对 → PASS（v0.1.1 修正后的形态）。"""
+    body = (
+        "## crsscope v0.1.1\n\n"
+        "```bash\n"
+        "pip install crsscope-0.1.1-py3-none-any.whl       # wheel\n"
+        "pip install crsscope-0.1.1.tar.gz                 # sdist\n"
+        "```\n\n"
+        "```\nSHA256SUMS\ncrsscope-0.1.1-py3-none-any.whl\ncrsscope-0.1.1.tar.gz\n```\n"
+    )
+    ok, detail = cr.body_version_verdict(body, "0.1.1")
+    assert ok is True, detail
+    assert "4 处" in detail  # 正文的 4 处全部命中（安装 2 + 附件清单 2）
+
+
+# ── 六、用法 ──────────────────────────────────────────────────────────
 
 
 def test_online_without_tag_is_usage_error(capsys) -> None:

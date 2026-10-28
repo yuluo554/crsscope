@@ -39,4 +39,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+# 刻意不设 addopts = "-q"：README / AGENTS 让读者敲 `py -3.12 -m pytest -q`，与文件里的
+# `-q` 叠加成 `-qq` 会吞掉汇总行（2026-10-28 实测：`pytest -q` 只有点阵与 `[100%]`，
+# 没有 "N passed"）。汇总行是本项目"贴证据"纪律的最低要求，所以缺省态必须看得见数字。
+# 想更安静就自己在命令行加 -q / -qq——只有用户显式给的那一层才生效。
