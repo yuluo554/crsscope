@@ -67,8 +67,60 @@ tag 名 `v0.1.2`；注释式 tag（annotated）。版本单点 `src/crsscope/__i
 
 以下字面值**只能**出现在 tag 之后（本文件所在的提交晚于 `v0.1.2`）。
 
-（待发布后填写：annotated tag OID / tag 指向的 commit / Release URL / 两个产物的 sha256 /
-真下载复核结果 / 各次 CI run id 与结论 / `--online --tag v0.1.2` 的 9 条判据输出）
+### 2.1 tag 与 Release
+
+| 项 | 值 |
+|---|---|
+| annotated tag OID | `0f6d8afbb2b4001b2ab36a0a321fd99a04d15792` |
+| tag 指向 commit | `578eda3cd6a7342369bf97ec48e44108015b5d58`（`fix(release): v0.1.2 —— 正文版本面加门 + 测试机制收口 + 自述数字自指守门`） |
+| `git cat-file -t v0.1.2` | `tag`（annotated） |
+| Release URL | `https://github.com/yuluo554/crsscope/releases/tag/v0.1.2`（`draft=False`，3 份附件） |
+
+### 2.2 产物哈希
+
+| 产物 | sha256 |
+|---|---|
+| `crsscope-0.1.2-py3-none-any.whl` | `d57b339ef80e2d0764bdd26b17ab231c4e2380a64d073a76bfab6d90730ed33b` |
+| `crsscope-0.1.2.tar.gz` | `49d9b857249b768eaafe5647fa8eddf9cd380ce781762fd7379f2a24ca252d7f` |
+
+### 2.3 真下载复核（三方一致）
+
+`gh release download v0.1.2 -R yuluo554/crsscope -D <tmp>\dl-crs` 后：
+
+| 检查 | 结果 |
+|---|---|
+| `sha256sum -c SHA256SUMS` | 两条均 `OK`（exit 0） |
+| `cmp` 下载 wheel vs `dist/` wheel | `IDENTICAL_WHL` |
+| `cmp` 下载 sdist vs `dist/` sdist | `IDENTICAL_SDIST` |
+
+### 2.4 CI
+
+| run id | 事件 | 四组矩阵 | 结论 |
+|---|---|---|---|
+| `40686086803` | `push`（main） | ubuntu 3.11 / 3.12、windows 3.11 / 3.12 | 4/4 `success` |
+| `40686300520` | `push`（tag `v0.1.2`） | 同上 | 4/4 `success` |
+
+8 条 check-run 的 annotations 全文扫描：`Node.js 20` 命中 **0** 条（U2 的升版落定）；
+仅剩 4 条 informational notice `ubuntu-latest label will migrate to Ubuntu 26 beginning
+October 19, 2026`（见 U4）。
+
+### 2.5 `--online --tag v0.1.2` 判据汇总
+
+```
+共 9 条判据，FAIL 0 条        (exit 0)
+```
+
+逐条：`REL.ARCHIVE_TAG` / `REL.FILES` / `REL.VERSION` / `REL.README_CMDS` /
+`REL.GH_RELEASE` / `REL.BODY_VERSION`（正文点名产物 4 处、版本分布 `['0.1.2']`，
+版本源取自 `v0.1.2` 树）/ `REL.SUMS` / `REL.COMMON_FILES`（79 个共有文件，不一致 0）/
+`REL.SMOKE`（8 条 CLI 冒烟全 exit 0）。
+
+### 2.6 验收时的本地全绿
+
+| 命令 | 汇总行 | 退出码 |
+|---|---|---|
+| `py -3.12 -m pytest -q` | `332 passed, 2 skipped in 18.08s` | 0 |
+| `py -3.12 tools/check-sprint-layout.py` | `结论: 全绿` | 0 |
 
 ---
 
@@ -81,12 +133,12 @@ tag 名 `v0.1.2`；注释式 tag（annotated）。版本单点 `src/crsscope/__i
 | 3 | 照 README 跑完最小复现，仓库根仍是干净树 | 实现 | `/report.json` `/report.md` 已入 `.gitignore`；`git status --porcelain` 为空 |
 | 4 | 自述数字零漂移且有门 | 实现 | `tests/test_reported_counts.py` 3 条 + 真负控（改 999 → 红 → 还原） |
 | 5 | 3.11 语法兼容有本地判据 | 实现（经 AST，非解释器） | `tests/test_python_floor.py` 4 条；**本机无 3.11，未实跑 3.11**（见未验证项） |
-| 6 | 附件 sha256 三方一致，`--online` 9 条判据全 PASS | 待首推 | tag 后追加（§二） |
-| 7 | CI 四组矩阵全绿且 Node20 弃用注解消失 | 待首推 | tag 后追加（§二） |
+| 6 | 附件 sha256 三方一致，`--online` 9 条判据全 PASS | 实现 | §2.2 / §2.3 / §2.5；真下载 `sha256sum -c` 两条 OK，`cmp` 两产物 `IDENTICAL_WHL` / `IDENTICAL_SDIST`，9 条判据 FAIL 0 |
+| 7 | CI 四组矩阵全绿且 Node20 弃用注解消失 | 实现 | §2.4；push `40686086803` 与 tag `40686300520` 各 4/4 `success`，8 条 check-run 注解扫描 `Node.js 20` 命中 0 |
 | 8 | topics 非空 | 实现 | `gh api repos/yuluo554/crsscope --jq '.topics'` → 8 个 |
 | 9 | 外部事实有复核锚 | 实现 | `data/README.md` §5.1（`annual` / `2027-10-28`）+ `plan/00` 决策 ⑭ |
 
-**三态统计**：实现 7 行 / 不适用 0 行 / 待首推 2 行（合计 9 行）。第七、八行在本版发布后填实。
+**三态统计**：实现 9 行 / 不适用 0 行 / 待首推 0 行（合计 9 行）。
 
 ### 未验证项（不许写成 PASS）
 
